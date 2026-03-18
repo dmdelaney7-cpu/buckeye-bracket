@@ -299,9 +299,9 @@ text-transform:uppercase;
   </div>
   <div class="divider"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn-outline" onclick="showTab('lb')">📊 Leaderboard</button>
-    <button class="btn-outline" onclick="switchPlayer()">Switch Player</button>
-    <button class="btn-outline" id="btn-clear" onclick="clearPicks()" style="color:#ff6b6b;border-color:rgba(187,0,0,.3)">Clear Picks</button>
+    <button onclick="showTab('lb')" style="background:var(--scarlet);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:var(--fd);font-weight:600;font-size:.9rem;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 12px rgba(187,0,0,.4)">📊 Leaderboard</button>
+    <button onclick="switchPlayer()" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:10px 18px;font-family:var(--fd);font-weight:600;font-size:.9rem;letter-spacing:1px;cursor:pointer">Switch Player</button>
+    <button id="btn-clear" onclick="clearPicks()" style="background:rgba(187,0,0,.15);color:#ff6b6b;border:1.5px solid rgba(187,0,0,.4);border-radius:8px;padding:10px 18px;font-family:var(--fd);font-weight:600;font-size:.9rem;letter-spacing:1px;cursor:pointer">Clear Picks</button>
   </div>
 </div>
 
@@ -317,6 +317,7 @@ text-transform:uppercase;
       <button class="btn-outline" id="btn-refresh" onclick="refreshScores()">⟳ Refresh Now</button>
     </div>
   </div>
+  <div id="my-summary-card"></div>
   <div id="lb-list"></div>
 </div>
 
@@ -679,7 +680,7 @@ function renderSeeds() {
       const classes = ["tile", pick===team?"sel":"", new Date()>=LOCK?"locked":"", wins>0&&!isOut?"winning":"", isOut&&pick!==team?"elim-tile":""].filter(Boolean).join(" ");
       const winsHtml = wins>0 ? `<div class="tile-wins">${isOut?"☠️":"🏀"} ${wins}W·${wins*s}pt</div>` : "";
       return `<div class="${classes}" onclick="${new Date()<LOCK?`makePick(${s},'${team.replace(/'/g,"\\'")}')`:""}" style="${new Date()>=LOCK?"cursor:default":""}">
-        <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">${logo(team,20)}<div class="tile-name" style="font-size:.76rem">${team}</div></div>
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">${logo(team,18)}<div class="tile-name" style="font-size:.65rem;line-height:1.25;white-space:normal;word-break:break-word">${team}</div></div>
         ${winsHtml}
       </div>`;
     }).join("");
@@ -688,7 +689,6 @@ function renderSeeds() {
       <div class="teams-grid-aligned">
         <div class="seed-col-left">
           <div class="seed-n">${s}</div>
-          <div class="seed-pts" style="font-size:.55rem;margin-top:2px">${s}pt/W</div>
         </div>
         ${tileCells}
       </div>`;
@@ -796,7 +796,38 @@ async function renderLeaderboard() {
 
   if (!ranked.length) {
     list.innerHTML = `<div class="empty-s"><div class="empty-icon">🌰</div><div>No players yet — share the link!</div></div>`;
+    document.getElementById("my-summary-card").innerHTML = "";
     return;
+  }
+
+  // ── MY SUMMARY CARD ──
+  const myRanked = ranked.find(p => p.name === playerName);
+  const myRank   = ranked.findIndex(p => p.name === playerName) + 1;
+  const leader   = ranked[0];
+  const summaryEl = document.getElementById("my-summary-card");
+
+  if (myRanked && playerName) {
+    const myScore    = myRanked.score;
+    const myPicks_   = myRanked.picks || {};
+    const teamsAlive = Object.values(myPicks_).filter(t => t && !eliminated[t]).length;
+    const teamsPicked = Object.keys(myPicks_).filter(k=>parseInt(k)>=1&&parseInt(k)<=16).length;
+    const behindPts  = leader.name !== playerName ? leader.score - myScore : 0;
+    const rankLabel  = myRank===1?"🥇 You're in 1st!":myRank===2?"🥈 You're in 2nd":myRank===3?"🥉 You're in 3rd":`#${myRank} of ${ranked.length}`;
+    const behindText = behindPts > 0 ? `<span style="color:var(--muted)"> · </span><span>${behindPts} pts behind ${leader.name}</span>` : `<span style="color:var(--muted)"> · </span><span style="color:var(--green)">Leading the pack!</span>`;
+    const aliveText  = teamsPicked > 0 ? `<span style="color:var(--muted)"> · </span><span>${teamsAlive}/${teamsPicked} teams still alive</span>` : "";
+
+    summaryEl.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(187,0,0,.18),rgba(187,0,0,.08));border:1.5px solid rgba(187,0,0,.5);border-radius:14px;padding:16px 20px;margin-bottom:16px">
+        <div style="font-family:var(--fd);font-size:1.1rem;letter-spacing:1px;color:var(--scarlet);margin-bottom:6px">${rankLabel}</div>
+        <div style="font-size:.8rem;color:var(--text);line-height:1.9;font-weight:600">
+          <span style="font-family:var(--fd);font-size:1.4rem;color:var(--scarlet)">${myScore}</span>
+          <span style="color:var(--muted);font-size:.72rem"> pts</span>
+          ${behindText}
+          ${aliveText}
+        </div>
+      </div>`;
+  } else {
+    summaryEl.innerHTML = "";
   }
 
   list.innerHTML = `<div style="font-size:.68rem;color:var(--muted);margin-bottom:10px;text-align:right">Hold an entry to delete it</div>` +
@@ -858,7 +889,7 @@ function statusLabel(status, wins) {
   if (status==="champion") return "🏆 Champ";
   if (status==="elim")     return "Out";
   if (status==="alive")    return `🏀 ${wins}W`;
-  return "—";
+  return ""; // pending — show nothing
 }
 
 // Which player is being filtered (null = no filter)
@@ -924,7 +955,8 @@ function renderStatus() {
       card.className = `sc ${status}`;
       if (dimmed) card.style.cssText = "opacity:.22;filter:grayscale(.6)";
       if (isFilteredPick) card.style.cssText = "outline:2px solid var(--scarlet);outline-offset:1px";
-      card.innerHTML = `<div style="display:flex;align-items:center;gap:5px">${logo(team,16)}<div class="sc-team">${team}</div></div><div class="sc-badge">${statusLabel(status,wins)}</div>`;
+      const label = statusLabel(status,wins);
+      card.innerHTML = `<div style="display:flex;align-items:center;gap:5px">${logo(team,16)}<div class="sc-team">${team}</div></div>${label?`<div class="sc-badge">${label}</div>`:`<div style="height:4px"></div>`}`;
       td.appendChild(card);
       tr.appendChild(td);
     });
