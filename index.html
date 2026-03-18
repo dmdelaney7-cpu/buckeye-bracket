@@ -61,9 +61,9 @@
 
 /* ── TABS ── */
 .tabs { max-width:900px; margin:0 auto; display:flex; gap:2px; padding:12px 20px 0; position:relative; z-index:1; overflow-x:auto; }
-.tab { background:none; border:none; cursor:pointer; font-family:var(–fd); font-size:.82rem; font-weight:600; color:var(–muted) !important; padding:9px 16px; border-radius:8px 8px 0 0; border-bottom:2px solid transparent; transition:all .2s; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; -webkit-text-fill-color:var(–muted); }
-.tab.on { color:var(–scarlet) !important; -webkit-text-fill-color:var(–scarlet); border-bottom-color:var(–scarlet); background:rgba(187,0,0,.08); }
-.tab:hover:not(.on) { color:var(–silver) !important; -webkit-text-fill-color:var(–silver); background:var(–surface); }
+.tab { display:inline-block; cursor:pointer; font-family:var(–fd); font-size:.82rem; font-weight:600; color:var(–muted); padding:9px 16px; border-radius:8px 8px 0 0; border-bottom:2px solid transparent; transition:all .2s; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; user-select:none; }
+.tab.on { color:var(–scarlet); border-bottom-color:var(–scarlet); background:rgba(187,0,0,.08); }
+.tab:hover:not(.on) { color:var(–silver); background:var(–surface); }
 
 /* ── MAIN ── */
 .main { max-width:900px; margin:0 auto; padding:0 20px 60px; position:relative; z-index:1; }
@@ -231,10 +231,10 @@
   </header>
 
   <div class="tabs">
-    <button class="tab on" id="tab-picks"  onclick="showTab('picks')">My Picks</button>
-    <button class="tab"    id="tab-lb"     onclick="showTab('lb')">Leaderboard</button>
-    <button class="tab"    id="tab-status" onclick="showTab('status')">Bracket Status</button>
-    <button class="tab"    id="tab-how"    onclick="showTab('how')">How to Play</button>
+    <div class="tab on" id="tab-picks"  onclick="showTab('picks')">My Picks</div>
+    <div class="tab"    id="tab-lb"     onclick="showTab('lb')">Leaderboard</div>
+    <div class="tab"    id="tab-status" onclick="showTab('status')">Bracket Status</div>
+    <div class="tab"    id="tab-how"    onclick="showTab('how')">How to Play</div>
   </div>
 
   <div class="main">
@@ -515,12 +515,7 @@ async function fbPull() {
 
 async function fbDelete(name) {
   try {
-    const params = new URLSearchParams({
-      action: "write",
-      name: name,
-      picks: "{}",
-      deleted: "true"
-    });
+    const params = new URLSearchParams({ action: "delete", name: name });
     await fetch(`${GAS}?${params.toString()}`);
   } catch(e) { console.warn("Sync delete error:", e); }
 }
