@@ -317,6 +317,7 @@ text-transform:uppercase;
     <div class="score-box">
       <div class="score-num" id="my-score">0</div>
       <div class="score-lbl">Current Pts</div>
+      <div id="round-banner-picks" style="margin-top:6px"></div>
     </div>
   </div>
   <div class="banner">🏀 <strong>Scoring:</strong> Each win by your team = that seed number in points. A <strong style="color:var(--gold)">12-seed</strong> on a run scores 12 pts/win. A 1-seed winning it all scores just 6 pts total.</div>
@@ -744,6 +745,19 @@ function shareApp() {
 function openPlayerModal(name, picks) {
   document.getElementById("pm-name").textContent = name + (name===playerName?" (you)":"");
   const body = document.getElementById("pm-body");
+  const isMe = name === playerName;
+  const locked = new Date() >= LOCK;
+
+  // Only show picks if locked OR it's your own entry
+  if (!locked && !isMe) {
+    body.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--muted)">
+      <div style="font-size:2rem;margin-bottom:12px">🔒</div>
+      <div style="font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:6px">Picks Hidden Until Tip-Off</div>
+      <div style="font-size:.78rem;line-height:1.6">Everyone's picks are revealed once the First Round begins on March 19.</div>
+    </div>`;
+    document.getElementById("player-modal").classList.add("show");
+    return;
+  }
   let totalPts = 0;
   const rows = Array.from({length:16},(_,i)=>i+1).map(s => {
     const team = picks[s];
@@ -816,7 +830,8 @@ function renderSeeds(allPlayers=[]) {
       const classes = ["tile", pick===team?"sel":"", new Date()>=LOCK?"locked":"", wins>0&&!isOut?"winning":"", isOut&&pick!==team?"elim-tile":""].filter(Boolean).join(" ");
       const winsHtml = wins>0 ? `<div class="tile-wins">${isOut?"☠️":"🏀"} ${wins}W·${wins*s}pt</div>` : "";
       const popCount = seedPops[team]||0;
-      const popHtml  = maxCount>0 && popCount===maxCount && maxCount>1 ? `<div class="pop-pick">🔥 ${popCount} picks</div>` : popCount>0 ? `<div class="pop-pick" style="color:var(--muted);border-color:transparent;background:transparent">${popCount} pick${popCount>1?"s":""}</div>` : "";
+      const locked = new Date() >= LOCK;
+      const popHtml = locked && maxCount>0 && popCount===maxCount && maxCount>1 ? `<div class="pop-pick">🔥 ${popCount} picks</div>` : locked && popCount>0 ? `<div class="pop-pick" style="color:var(--muted);border-color:transparent;background:transparent">${popCount} pick${popCount>1?"s":""}</div>` : "";
       return `<div class="${classes}" onclick="${new Date()<LOCK?`makePick(${s},'${team.replace(/'/g,"\\'")}')`:""}" style="${new Date()>=LOCK?"cursor:default":""}">
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">${logo(team,18)}<div class="tile-name" style="font-size:.65rem;line-height:1.25;white-space:normal;word-break:break-word">${team}</div></div>
         ${winsHtml}${popHtml}
@@ -855,9 +870,10 @@ function updateBar() {
   document.getElementById("prog-fill").style.width = (n/16*100)+"%";
   document.getElementById("prog-lbl").textContent  = `${n} / 16 seeds picked`;
   document.getElementById("my-score").textContent  = calcScore(myPicks);
-  // Show leaderboard CTA once all 16 picks are done
   const cta = document.getElementById("picks-cta");
   if (cta) cta.classList.toggle("hidden", n < 16);
+  const rb = document.getElementById("round-banner-picks");
+  if (rb) rb.innerHTML = roundBanner();
 }
 function calcScore(picks) {
   let t=0;
@@ -900,6 +916,45 @@ function onEntryTouchEnd(e, name, picks) {
   if (!_holdFired) openPlayerModal(name, picks);
 }
 
+// ════════════════════════════════════════════
+// ROUND TRACKER
+// ════════════════════════════════════════════
+function getCurrentRound() {
+  const now = new Date();
+  const rounds = [
+    { name:"First Four",   start:new Date("2026-03-17T18:00:00-04:00"), end:new Date("2026-03-19T11:00:00-04:00"), emoji:"🏀" },
+    { name:"First Round",  start:new Date("2026-03-19T11:00:00-04:00"), end:new Date("2026-03-21T00:00:00-04:00"), emoji:"🏀" },
+    { name:"Second Round", start:new Date("2026-03-21T00:00:00-04:00"), end:new Date("2026-03-23T00:00:00-04:00"), emoji:"🏀" },
+    { name:"Sweet 16",     start:new Date("2026-03-26T00:00:00-04:00"), end:new Date("2026-03-28T00:00:00-04:00"), emoji:"🔥" },
+    { name:"Elite Eight",  start:new Date("2026-03-28T00:00:00-04:00"), end:new Date("2026-03-30T00:00:00-04:00"), emoji:"🔥" },
+    { name:"Final Four",   start:new Date("2026-04-04T00:00:00-04:00"), end:new Date("2026-04-06T00:00:00-04:00"), emoji:"⭐" },
+    { name:"Championship", start:new Date("2026-04-06T00:00:00-04:00"), end:new Date("2026-04-07T00:00:00-04:00"), emoji:"🏆" },
+  ];
+  const active = rounds.find(r => now >= r.start && now < r.end);
+  if (active) return { ...active, status:"live" };
+  // Between rounds
+  const next = rounds.find(r => now < r.start);
+  if (next) {
+    const diff = next.start - now;
+    const days = Math.floor(diff/86400000);
+    const hours = Math.floor((diff%86400000)/3600000);
+    const timeStr = days>0?`${days}d ${hours}h`:`${hours}h`;
+    return { name: next.name, emoji: next.emoji, status:"upcoming", timeStr };
+  }
+  return { name:"Tournament Complete", emoji:"🏆", status:"done" };
+}
+
+function roundBanner() {
+  const r = getCurrentRound();
+  if (r.status==="live") {
+    return `<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:800;color:var(--green)"><span class="live-dot"></span>${r.emoji} ${r.name} — IN PROGRESS</div>`;
+  }
+  if (r.status==="upcoming") {
+    return `<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(199,160,8,.1);border:1px solid rgba(199,160,8,.25);border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:800;color:var(--gold)">${r.emoji} ${r.name} in ${r.timeStr}</div>`;
+  }
+  return `<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(199,160,8,.15);border:1px solid rgba(199,160,8,.4);border-radius:20px;padding:4px 12px;font-size:.72rem;font-weight:800;color:var(--gold)">🏆 Tournament Complete</div>`;
+}
+
 async function renderLeaderboard() {
   const list  = document.getElementById("lb-list");
   const badge = document.getElementById("live-wrap");
@@ -907,7 +962,11 @@ async function renderLeaderboard() {
   if (lastRefresh) {
     document.getElementById("refresh-time").textContent = `Updated ${lastRefresh.toLocaleTimeString()}`;
     badge.innerHTML = `<div class="live-badge"><span class="live-dot"></span>ESPN Live · Auto-updates hourly</div>`;
+  } else {
+    badge.innerHTML = roundBanner();
   }
+  // Always show round banner below badge
+  badge.innerHTML = roundBanner();
 
   list.innerHTML = `<div class="empty-s"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>`;
 
@@ -935,9 +994,10 @@ async function renderLeaderboard() {
     .map(p => ({
       ...p,
       score: calcScore(p.picks||{}),
-      pickCount: Object.keys(p.picks||{}).filter(k=>parseInt(k)>=1&&parseInt(k)<=16).length
+      pickCount: Object.keys(p.picks||{}).filter(k=>parseInt(k)>=1&&parseInt(k)<=16).length,
+      teamsAlive: Object.values(p.picks||{}).filter(t => t && !eliminated[t] && (results[t]||0) >= 0).length
     }))
-    .sort((a,b) => b.score - a.score);
+    .sort((a,b) => b.score - a.score || b.teamsAlive - a.teamsAlive);
 
   if (!ranked.length) {
     list.innerHTML = `<div class="empty-s"><div class="empty-icon">🌰</div><div>No players yet — share the link!</div></div>`;
@@ -1008,14 +1068,16 @@ async function renderLeaderboard() {
           <div class="lb-rank ${rc}">${rd}</div>
           <div style="flex:1">
             <div class="lb-name">${p.name}${isMe?" (you)":""}</div>
-            <div class="lb-meta">${p.pickCount}/16 picks</div>
+            <div class="lb-meta">${p.pickCount}/16 picks${new Date()>=LOCK?` · ${p.teamsAlive} alive`:""}${i>0&&ranked[i-1].score===p.score?` <span style="color:var(--gold);font-size:.6rem">TIE → ${p.teamsAlive} alive</span>`:""}</div>
           </div>
           <div>
             <div class="lb-score">${p.score}</div>
             <div class="lb-slbl">PTS</div>
           </div>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;padding-top:4px;border-top:1px solid var(--border)">${logoGrid}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;padding-top:4px;border-top:1px solid var(--border)">
+          ${new Date() >= LOCK ? logoGrid : `<div style="font-size:.68rem;color:var(--muted);font-style:italic;padding:2px 0">Picks hidden until tip-off 🔒</div>`}
+        </div>
       </div>`;
     }).join("");
 }
