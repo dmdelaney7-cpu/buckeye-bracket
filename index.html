@@ -265,7 +265,7 @@ text-transform:uppercase;
     <div style="font-size:2.5rem;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(187,0,0,.6))">🌰</div>
     <div style="font-family:var(--fd);font-size:2rem;letter-spacing:3px;color:var(--scarlet);text-shadow:0 0 20px rgba(187,0,0,.4)">BUCKEYE BRACKET</div>
     <div style="font-family:var(--fd);font-size:.9rem;color:var(--silver);letter-spacing:4px;margin-top:4px;margin-bottom:20px">MARCH MADNESS 2026</div>
-    <div style="font-size:.82rem;color:var(--muted);margin-bottom:20px;line-height:1.6">Enter your name to make picks and join the leaderboard</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:20px;line-height:1.6">Enter your name to make picks and join the leaderboard<br><span style="font-size:.72rem;color:var(--scarlet)">⚠️ Use the same name on all your devices</span></div>
     <div style="display:flex;gap:10px">
       <input class="txt" id="name-inp" type="text" placeholder="Your name…" maxlength="24" autocomplete="off" style="flex:1">
       <button onclick="startPlaying()" style="background:var(--scarlet);color:#fff !important;-webkit-text-fill-color:#fff;border:none;border-radius:10px;padding:13px 22px;font-family:var(--fd);font-weight:700;font-size:1rem;letter-spacing:1px;cursor:pointer;white-space:nowrap;box-shadow:0 4px 16px rgba(187,0,0,.5)">Enter →</button>
@@ -356,6 +356,7 @@ text-transform:uppercase;
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <span class="refresh-time" id="refresh-time"></span>
+      <div id="btn-edit" onclick="toggleEditMode()" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:8px 16px;font-family:var(--fd);font-weight:600;font-size:.82rem;letter-spacing:1px;cursor:pointer;user-select:none">Edit</div>
       <div id="btn-refresh" onclick="refreshScores()" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:8px 16px;font-family:var(--fd);font-weight:600;font-size:.82rem;letter-spacing:1px;cursor:pointer;user-select:none">⟳ Refresh Now</div>
     </div>
   </div>
@@ -554,9 +555,18 @@ function init() {
   }, 30 * 60 * 1000);
 
   if (playerName) {
-    // Already have a name — dismiss modal and push to leaderboard
     document.getElementById("name-modal").style.display = "none";
     document.getElementById("player-chip").textContent = "👤 " + playerName;
+    // If no local picks, try to pull from sheet
+    if (Object.keys(myPicks).length === 0) {
+      fbPull().then(data => {
+        if (data && data[playerName] && data[playerName].picks) {
+          myPicks = data[playerName].picks;
+          localStorage.setItem(`mm26_picks_${GROUP}`, JSON.stringify(myPicks));
+          renderSeeds();
+        }
+      });
+    }
     fbPush();
   }
   // Otherwise modal stays visible
@@ -604,7 +614,7 @@ async function fbDelete(name) {
 // ════════════════════════════════════════════
 // WELCOME / NAV
 // ════════════════════════════════════════════
-function startPlaying() {
+async function startPlaying() {
   const v = document.getElementById("name-inp").value.trim();
   if (!v) { toast("Enter your name first!"); return; }
   playerName = v;
@@ -612,6 +622,18 @@ function startPlaying() {
   document.getElementById("name-modal").style.display = "none";
   document.getElementById("player-chip").textContent = "👤 " + playerName;
   updateLockPill();
+
+  // If no picks in local storage, try to pull from Google Sheets
+  const localPicks = JSON.parse(localStorage.getItem(`mm26_picks_${GROUP}`) || "{}");
+  if (Object.keys(localPicks).length === 0) {
+    const data = await fbPull();
+    if (data && data[playerName] && data[playerName].picks) {
+      myPicks = data[playerName].picks;
+      localStorage.setItem(`mm26_picks_${GROUP}`, JSON.stringify(myPicks));
+      toast(`Welcome back ${playerName}! Your picks have been loaded ✓`);
+    }
+  }
+
   renderSeeds();
   fbPush();
 }
@@ -888,58 +910,51 @@ function calcScore(picks) {
 // LEADERBOARD — pulls live from Google Sheets
 // ════════════════════════════════════════════
 // Admin PIN for deleting entries — change this to whatever you want
-const ADMIN_PIN = "1234";
-let adminUnlocked = false;
+const ADMIN_PIN = "7777";
 
 async function deletePlayer(name) {
-  if (!adminUnlocked) {
-    const pin = prompt("Enter admin PIN to delete entries:");
-    if (pin !== ADMIN_PIN) { toast("Incorrect PIN"); return; }
-    adminUnlocked = true;
-  }
   if (!confirm(`Remove ${name} from the leaderboard?`)) return;
   await fbDelete(name);
   toast(`${name} removed`);
   renderLeaderboard();
 }
 
-// Touch handlers — ignore scrolling, short tap = modal, long hold = delete
-let _holdTimer    = null;
-let _holdFired    = false;
-let _touchStartTime = 0;
-let _touchStartY  = 0;
-let _touchMoved   = false;
+// ════════════════════════════════════════════
+// EDIT MODE
+// ════════════════════════════════════════════
+let editMode = false;
 
-function onEntryTouchStart(e, name) {
-  _holdFired    = false;
-  _touchMoved   = false;
-  _touchStartTime = Date.now();
-  _touchStartY  = e.touches?.[0]?.clientY ?? 0;
-  _holdTimer = setTimeout(() => {
-    if (_touchMoved) return; // ignore if scrolling
-    _holdFired = true;
-    navigator.vibrate?.(40);
-    deletePlayer(name);
-  }, 700);
-}
-
-function onEntryTouchMove(e) {
-  const dy = Math.abs((e.touches?.[0]?.clientY ?? 0) - _touchStartY);
-  if (dy > 8) { // moved more than 8px = scrolling
-    _touchMoved = true;
-    clearTimeout(_holdTimer);
+function toggleEditMode() {
+  if (!editMode) {
+    // Require PIN to enter edit mode
+    const pin = prompt("Enter admin PIN:");
+    if (pin !== ADMIN_PIN) { toast("Incorrect PIN"); return; }
+    editMode = true;
+    const btn = document.getElementById("btn-edit");
+    btn.textContent = "Done";
+    btn.style.background = "var(--scarlet)";
+    btn.style.borderColor = "var(--scarlet)";
+    toast("Edit mode on — tap ✕ to remove an entry");
+  } else {
+    editMode = false;
+    const btn = document.getElementById("btn-edit");
+    btn.textContent = "Edit";
+    btn.style.background = "var(--surface2)";
+    btn.style.borderColor = "var(--border)";
   }
+  renderLeaderboard();
 }
 
-function onEntryTouchEnd(e, name, picks) {
-  clearTimeout(_holdTimer);
-  const elapsed = Date.now() - _touchStartTime;
-  if (!_holdFired && !_touchMoved && elapsed < 300) {
-    openPlayerModal(name, picks);
-  }
-  _holdFired  = false;
-  _touchMoved = false;
+// Simple tap handler — no long press needed anymore
+function onEntryTap(name, picks) {
+  if (editMode) return; // in edit mode taps do nothing, use ✕ button
+  openPlayerModal(name, picks);
 }
+
+// Keep these as no-ops so inline handlers don't break
+function onEntryTouchStart(e, name) {}
+function onEntryTouchMove(e) {}
+function onEntryTouchEnd(e, name, picks) {}
 
 // ════════════════════════════════════════════
 // ROUND TRACKER
@@ -1060,7 +1075,7 @@ async function renderLeaderboard() {
     summaryEl.innerHTML = "";
   }
 
-  list.innerHTML = `<div style="font-size:.68rem;color:var(--muted);margin-bottom:10px;text-align:right">Hold an entry to delete it</div>` +
+  list.innerHTML = (editMode ? `<div style="font-size:.68rem;color:var(--scarlet);margin-bottom:10px;text-align:right;font-weight:700">✕ Tap to remove an entry</div>` : `<div style="font-size:.68rem;color:var(--muted);margin-bottom:10px;text-align:right">Tap an entry to see their picks</div>`) +
     ranked.map((p,i) => {
       const rc = i===0?"r1":i===1?"r2":i===2?"r3":"rn";
       const rd = i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1);
@@ -1083,14 +1098,10 @@ async function renderLeaderboard() {
       }).join("");
 
       return `<div class="lb-entry${isMe?" me":""}"
-        onmousedown="onEntryTouchStart(event,'${p.name}')"
-        onmouseup="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
-        onmouseleave="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
-        ontouchstart="onEntryTouchStart(event,'${p.name}')"
-        ontouchmove="onEntryTouchMove(event)"
-        ontouchend="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
-        style="cursor:pointer;flex-direction:column;align-items:stretch;gap:10px">
-        <div style="display:flex;align-items:center;gap:14px">
+        onclick="onEntryTap('${p.name}',${JSON.stringify(picks)})"
+        style="cursor:pointer;flex-direction:column;align-items:stretch;gap:10px;position:relative">
+        ${editMode ? `<div onclick="event.stopPropagation();deletePlayer('${p.name}')" style="position:absolute;top:10px;right:10px;width:28px;height:28px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#fff;z-index:10;cursor:pointer">✕</div>` : ""}
+        <div style="display:flex;align-items:center;gap:14px;${editMode?"padding-right:36px":""}">
           <div class="lb-rank ${rc}">${rd}</div>
           <div style="flex:1">
             <div class="lb-name">${p.name}${isMe?" (you)":""}</div>
