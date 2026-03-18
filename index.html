@@ -10,11 +10,11 @@
 <style>
   *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
   :root {
-    --bg:#0d0d0d; --surface:#141414; --surface2:#1c1c1c; --border:#2a2a2a;
+    --bg:#2a2a2a; --surface:#333333; --surface2:#3d3d3d; --border:#4a4a4a;
     --scarlet:#BB0000; --scarlet-glow:rgba(187,0,0,.25);
     --grey-light:#A8A8A8; --silver:#C8C8C8;
     --gold:#C7A008; --green:#22c55e; --red:#ff3b30;
-    --text:#F0F0F0; --muted:#666;
+    --text:#F0F0F0; --muted:#999;
     --fd:'Oswald',sans-serif; --fb:'Nunito',sans-serif;
   }
   html { scroll-behavior:smooth; }
@@ -46,7 +46,7 @@
 .chip-txt strong { color:var(–text); display:block; margin-bottom:2px; }
 
 /* ── HEADER ── */
-.hdr { position:sticky; top:0; z-index:200; background:rgba(10,10,10,.96); backdrop-filter:blur(14px); border-bottom:2px solid var(–scarlet); padding:11px 20px; box-shadow:0 4px 24px rgba(187,0,0,.2); }
+.hdr { position:sticky; top:0; z-index:200; background:rgba(35,35,35,.97); backdrop-filter:blur(14px); border-bottom:2px solid var(–scarlet); padding:11px 20px; box-shadow:0 4px 24px rgba(187,0,0,.2); }
 .hdr-in { max-width:900px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .h-brand { display:flex; align-items:center; gap:10px; }
 .h-leaf { font-size:1.4rem; filter:drop-shadow(0 0 6px rgba(187,0,0,.5)); }
@@ -87,7 +87,7 @@
 position:sticky;
 top:58px; /* sits just below the app header */
 z-index:100;
-background:rgba(13,13,13,.97);
+background:rgba(42,42,42,.97);
 backdrop-filter:blur(10px);
 display:grid;
 grid-template-columns:44px repeat(4,1fr);
@@ -209,7 +209,7 @@ text-transform:uppercase;
 .empty-s { text-align:center; padding:48px 16px; color:var(–muted); }
 .empty-icon { font-size:3rem; margin-bottom:12px; }
 
-#toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(14px); background:var(–surface2); border:1px solid rgba(187,0,0,.4); border-radius:12px; padding:12px 22px; font-size:.84rem; font-weight:700; box-shadow:0 8px 32px rgba(0,0,0,.7); z-index:9999; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; max-width:90vw; text-align:center; }
+#toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(14px); background:var(–surface2); border:1px solid rgba(187,0,0,.4); border-radius:12px; padding:12px 22px; font-size:.84rem; font-weight:700; box-shadow:0 8px 32px rgba(0,0,0,.4); z-index:9999; opacity:0; transition:all .3s; pointer-events:none; white-space:nowrap; max-width:90vw; text-align:center; }
 #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 .spinner { display:inline-block; width:13px; height:13px; border:2px solid var(–border); border-top-color:var(–scarlet); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:5px; }
 @keyframes spin { to{transform:rotate(360deg)} }
