@@ -206,6 +206,33 @@ text-transform:uppercase;
 .sched-r { font-weight:800; color:var(–text); display:block; }
 .sched-d { color:var(–muted); font-size:.68rem; }
 
+/* Countdown timer */
+.countdown-bar { background:rgba(187,0,0,.1); border:1px solid rgba(187,0,0,.25); border-radius:10px; padding:10px 16px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+.countdown-label { font-size:.72rem; color:var(–muted); font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+.countdown-time { font-family:var(–fd); font-size:1.3rem; letter-spacing:2px; color:var(–scarlet); }
+.countdown-done { font-family:var(–fd); font-size:1rem; color:#ff6b6b; letter-spacing:1px; }
+
+/* Popular pick badge */
+.pop-pick { font-size:.58rem; font-weight:800; color:var(–gold); background:rgba(199,160,8,.12); border:1px solid rgba(199,160,8,.3); border-radius:4px; padding:1px 5px; margin-top:3px; width:fit-content; }
+
+/* Player detail modal */
+#player-modal { position:fixed; inset:0; z-index:600; background:rgba(0,0,0,.8); backdrop-filter:blur(8px); display:none; align-items:flex-end; justify-content:center; padding:0; }
+#player-modal.show { display:flex; }
+.player-modal-sheet { background:var(–surface); border-radius:20px 20px 0 0; border-top:2px solid rgba(187,0,0,.4); padding:24px 20px 40px; width:100%; max-width:600px; max-height:85vh; overflow-y:auto; animation:slideUp .3s ease; }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.pm-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+.pm-name { font-family:var(–fd); font-size:1.6rem; letter-spacing:2px; color:var(–scarlet); }
+.pm-close { font-size:1.4rem; cursor:pointer; color:var(–muted); padding:4px 8px; }
+.pm-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(–border); }
+.pm-row:last-child { border-bottom:none; }
+.pm-seed { font-family:var(–fd); font-size:1.1rem; color:var(–scarlet); min-width:28px; }
+.pm-team { font-size:.85rem; font-weight:800; flex:1; }
+.pm-pts { font-family:var(–fd); font-size:1.1rem; color:var(–gold); min-width:50px; text-align:right; }
+.pm-status { font-size:.65rem; font-weight:800; padding:2px 7px; border-radius:4px; }
+.pm-alive { background:rgba(34,197,94,.15); color:var(–green); border:1px solid rgba(34,197,94,.3); }
+.pm-elim { background:rgba(255,59,48,.1); color:#ff6b6b; border:1px solid rgba(255,59,48,.25); text-decoration:line-through; }
+.pm-none { background:var(–surface2); color:var(–muted); border:1px solid var(–border); }
+
 .empty-s { text-align:center; padding:48px 16px; color:var(–muted); }
 .empty-icon { font-size:3rem; margin-bottom:12px; }
 
@@ -218,6 +245,18 @@ text-transform:uppercase;
 </head>
 <body>
 <div id="toast"></div>
+
+<!-- ══════════════════ PLAYER DETAIL MODAL ══════════════════ -->
+
+<div id="player-modal" onclick="closePlayerModal(event)">
+  <div class="player-modal-sheet" id="player-modal-sheet">
+    <div class="pm-header">
+      <div class="pm-name" id="pm-name"></div>
+      <div class="pm-close" onclick="document.getElementById('player-modal').classList.remove('show')">✕</div>
+    </div>
+    <div id="pm-body"></div>
+  </div>
+</div>
 
 <!-- ══════════════════ NAME MODAL ══════════════════ -->
 
@@ -250,6 +289,7 @@ text-transform:uppercase;
         </div>
       </div>
       <div class="h-right">
+        <div onclick="shareApp()" style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:.76rem;font-weight:700;cursor:pointer;color:var(--silver);user-select:none">📤 Share</div>
         <div class="pchip" id="player-chip" onclick="playerName?switchPlayer():document.getElementById('name-modal').style.display='flex'">👤 —</div>
         <div class="pill" id="lock-pill"></div>
       </div>
@@ -280,6 +320,7 @@ text-transform:uppercase;
     </div>
   </div>
   <div class="banner">🏀 <strong>Scoring:</strong> Each win by your team = that seed number in points. A <strong style="color:var(--gold)">12-seed</strong> on a run scores 12 pts/win. A 1-seed winning it all scores just 6 pts total.</div>
+  <div id="countdown-bar"></div>
   <!-- Sticky region header -->
   <div class="region-header-bar">
     <div class="rh-seed"></div>
@@ -295,13 +336,13 @@ text-transform:uppercase;
       <div style="font-family:var(--fd);font-size:1.1rem;letter-spacing:1px;color:var(--scarlet)">ALL 16 PICKS MADE! 🌰</div>
       <div style="font-size:.76rem;color:var(--muted);margin-top:2px">Head to the leaderboard to see where you stand</div>
     </div>
-    <button class="btn-scarlet" onclick="showTab('lb')">View Leaderboard →</button>
+    <div onclick="showTab('lb')" style="background:var(--scarlet);color:var(--text);border-radius:8px;padding:11px 20px;font-family:var(--fd);font-weight:700;font-size:.9rem;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 14px rgba(187,0,0,.45);user-select:none;white-space:nowrap">View Leaderboard →</div>
   </div>
   <div class="divider"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button onclick="showTab('lb')" style="background:var(--scarlet);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:var(--fd);font-weight:600;font-size:.9rem;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 12px rgba(187,0,0,.4)">📊 Leaderboard</button>
-    <button onclick="switchPlayer()" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:10px 18px;font-family:var(--fd);font-weight:600;font-size:.9rem;letter-spacing:1px;cursor:pointer">Switch Player</button>
-    <button id="btn-clear" onclick="clearPicks()" style="background:rgba(187,0,0,.15);color:#ff6b6b;border:1.5px solid rgba(187,0,0,.4);border-radius:8px;padding:10px 18px;font-family:var(--fd);font-weight:600;font-size:.9rem;letter-spacing:1px;cursor:pointer">Clear Picks</button>
+    <div onclick="showTab('lb')" style="background:var(--scarlet);color:var(--text);border-radius:8px;padding:11px 22px;font-family:var(--fd);font-weight:700;font-size:.95rem;letter-spacing:1px;cursor:pointer;box-shadow:0 4px 14px rgba(187,0,0,.45);user-select:none">📊 Leaderboard</div>
+    <div onclick="switchPlayer()" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:11px 18px;font-family:var(--fd);font-weight:600;font-size:.95rem;letter-spacing:1px;cursor:pointer;user-select:none">Switch Player</div>
+    <div id="btn-clear" onclick="clearPicks()" style="background:rgba(187,0,0,.15);color:#ff6b6b;border:1.5px solid rgba(187,0,0,.4);border-radius:8px;padding:11px 18px;font-family:var(--fd);font-weight:600;font-size:.95rem;letter-spacing:1px;cursor:pointer;user-select:none">Clear Picks</div>
   </div>
 </div>
 
@@ -314,7 +355,7 @@ text-transform:uppercase;
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <span class="refresh-time" id="refresh-time"></span>
-      <button class="btn-outline" id="btn-refresh" onclick="refreshScores()">⟳ Refresh Now</button>
+      <div id="btn-refresh" onclick="refreshScores()" style="background:var(--surface2);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:8px 16px;font-family:var(--fd);font-weight:600;font-size:.82rem;letter-spacing:1px;cursor:pointer;user-select:none">⟳ Refresh Now</div>
     </div>
   </div>
   <div id="my-summary-card"></div>
@@ -498,6 +539,7 @@ function init() {
   // Show app shell immediately, modal on top if no name
   renderSeeds();
   showTab("picks");
+  updateCountdown();
   updateLockPill();
   fetchESPN().then(() => renderSeeds());
   setInterval(async () => {
@@ -646,15 +688,95 @@ async function refreshScores() {
   if (busy) return;
   busy = true;
   const btn = document.getElementById("btn-refresh");
-  btn.disabled = true;
+  btn.style.opacity = "0.5";
+  btn.style.pointerEvents = "none";
   btn.innerHTML = `<span class="spinner"></span>Updating…`;
   await fetchESPN();
   renderSeeds();
   await renderLeaderboard();
-  btn.disabled = false;
-  btn.textContent = "⟳ Refresh Scores";
+  btn.style.opacity = "";
+  btn.style.pointerEvents = "";
+  btn.textContent = "⟳ Refresh Now";
   busy = false;
   toast("Scores updated from ESPN! 🏀");
+}
+
+// ════════════════════════════════════════════
+// COUNTDOWN TIMER
+// ════════════════════════════════════════════
+function updateCountdown() {
+  const el = document.getElementById("countdown-bar");
+  if (!el) return;
+  const now = new Date();
+  const diff = LOCK - now;
+  if (diff <= 0) {
+    el.innerHTML = `<div class="countdown-bar"><span class="countdown-label">Picks Status</span><span class="countdown-done">🔒 PICKS ARE LOCKED</span></div>`;
+    return;
+  }
+  const days    = Math.floor(diff / 86400000);
+  const hours   = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  const parts = [];
+  if (days > 0)    parts.push(`${days}d`);
+  if (hours > 0)   parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  parts.push(`${seconds}s`);
+  el.innerHTML = `<div class="countdown-bar"><span class="countdown-label">⏱ Picks lock in</span><span class="countdown-time">${parts.join(" ")}</span></div>`;
+}
+setInterval(updateCountdown, 1000);
+
+// ════════════════════════════════════════════
+// SHARE
+// ════════════════════════════════════════════
+function shareApp() {
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title:"Buckeye Bracket 2026", text:"Join our March Madness bracket game! O-H!", url });
+  } else {
+    navigator.clipboard.writeText(url).then(() => toast("Link copied! 📋 Send it to your group."));
+  }
+}
+
+// ════════════════════════════════════════════
+// PLAYER DETAIL MODAL
+// ════════════════════════════════════════════
+function openPlayerModal(name, picks) {
+  document.getElementById("pm-name").textContent = name + (name===playerName?" (you)":"");
+  const body = document.getElementById("pm-body");
+  let totalPts = 0;
+  const rows = Array.from({length:16},(_,i)=>i+1).map(s => {
+    const team = picks[s];
+    if (!team) return `<div class="pm-row"><div class="pm-seed">${s}</div><div class="pm-team" style="color:var(--muted)">No pick</div><div class="pm-pts">—</div><div class="pm-status pm-none">—</div></div>`;
+    const wins = results[team]||0;
+    const isOut = eliminated[team];
+    const pts = wins * s;
+    totalPts += pts;
+    const statusClass = isOut?"pm-elim":wins>0?"pm-alive":"pm-none";
+    const statusText  = isOut?"Eliminated":wins>0?`${wins}W · ${pts}pts`:"No games yet";
+    return `<div class="pm-row">
+      <div class="pm-seed">${s}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex:1">${logo(team,20)}<div class="pm-team">${team}</div></div>
+      <div class="pm-pts">${pts>0?pts:"—"}</div>
+      <div class="pm-status ${statusClass}">${statusText}</div>
+    </div>`;
+  }).join("");
+  body.innerHTML = `
+    <div style="background:rgba(187,0,0,.08);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.78rem;color:var(--muted);font-weight:700">TOTAL POINTS</span>
+      <span style="font-family:var(--fd);font-size:2rem;color:var(--scarlet)">${totalPts}</span>
+    </div>
+    <div style="font-size:.65rem;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:grid;grid-template-columns:28px 1fr 50px auto;gap:10px;padding:0 4px">
+      <span>#</span><span>Team</span><span style="text-align:right">Pts</span><span>Status</span>
+    </div>
+    ${rows}`;
+  document.getElementById("player-modal").classList.add("show");
+}
+
+function closePlayerModal(e) {
+  if (e.target === document.getElementById("player-modal")) {
+    document.getElementById("player-modal").classList.remove("show");
+  }
 }
 
 // ════════════════════════════════════════════
@@ -662,15 +784,29 @@ async function refreshScores() {
 // ════════════════════════════════════════════
 const REGIONS = ["East","West","Midwest","South"];
 
-function renderSeeds() {
+function renderSeeds(allPlayers=[]) {
   const wrap = document.getElementById("seeds-wrap");
   wrap.innerHTML = "";
+  updateCountdown();
+
+  // Build popular pick map: { seedNum: { teamName: count } }
+  const popMap = {};
+  allPlayers.forEach(p => {
+    Object.entries(p.picks||{}).forEach(([s,t]) => {
+      if (!popMap[s]) popMap[s] = {};
+      popMap[s][t] = (popMap[s][t]||0) + 1;
+    });
+  });
+
   for (let s=1; s<=16; s++) {
     const pick = myPicks[s];
     const row  = document.createElement("div");
     row.className = "seed-row";
 
-    // Build one tile per region in column order
+    // Find most popular pick for this seed
+    const seedPops = popMap[s] || {};
+    const maxCount = Math.max(0, ...Object.values(seedPops));
+
     const tileCells = REGIONS.map(region => {
       const entry = BRACKET.find(t => t.seed===s && t.region===region);
       if (!entry) return `<div></div>`;
@@ -679,9 +815,11 @@ function renderSeeds() {
       const isOut = eliminated[team];
       const classes = ["tile", pick===team?"sel":"", new Date()>=LOCK?"locked":"", wins>0&&!isOut?"winning":"", isOut&&pick!==team?"elim-tile":""].filter(Boolean).join(" ");
       const winsHtml = wins>0 ? `<div class="tile-wins">${isOut?"☠️":"🏀"} ${wins}W·${wins*s}pt</div>` : "";
+      const popCount = seedPops[team]||0;
+      const popHtml  = maxCount>0 && popCount===maxCount && maxCount>1 ? `<div class="pop-pick">🔥 ${popCount} picks</div>` : popCount>0 ? `<div class="pop-pick" style="color:var(--muted);border-color:transparent;background:transparent">${popCount} pick${popCount>1?"s":""}</div>` : "";
       return `<div class="${classes}" onclick="${new Date()<LOCK?`makePick(${s},'${team.replace(/'/g,"\\'")}')`:""}" style="${new Date()>=LOCK?"cursor:default":""}">
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">${logo(team,18)}<div class="tile-name" style="font-size:.65rem;line-height:1.25;white-space:normal;word-break:break-word">${team}</div></div>
-        ${winsHtml}
+        ${winsHtml}${popHtml}
       </div>`;
     }).join("");
 
@@ -746,16 +884,20 @@ async function deletePlayer(name) {
   renderLeaderboard();
 }
 
-// Touch-hold / long-press to delete
+// Touch-hold / long-press to delete, short tap opens detail
 let _holdTimer = null;
+let _holdFired = false;
 function onEntryTouchStart(e, name) {
+  _holdFired = false;
   _holdTimer = setTimeout(() => {
+    _holdFired = true;
     navigator.vibrate?.(40);
     deletePlayer(name);
   }, 600);
 }
-function onEntryTouchEnd() {
+function onEntryTouchEnd(e, name, picks) {
   clearTimeout(_holdTimer);
+  if (!_holdFired) openPlayerModal(name, picks);
 }
 
 async function renderLeaderboard() {
@@ -785,6 +927,9 @@ async function renderLeaderboard() {
       <strong style="color:#ff6b6b">⚠️ Can't reach leaderboard.</strong> Check your internet connection and try refreshing.
     </div>`;
   }
+
+  // Pass players to renderSeeds for popular picks
+  renderSeeds(players);
 
   const ranked = players
     .map(p => ({
@@ -854,10 +999,10 @@ async function renderLeaderboard() {
 
       return `<div class="lb-entry${isMe?" me":""}"
         onmousedown="onEntryTouchStart(event,'${p.name}')"
-        onmouseup="onEntryTouchEnd()"
-        onmouseleave="onEntryTouchEnd()"
+        onmouseup="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
+        onmouseleave="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
         ontouchstart="onEntryTouchStart(event,'${p.name}')"
-        ontouchend="onEntryTouchEnd()"
+        ontouchend="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
         style="cursor:pointer;flex-direction:column;align-items:stretch;gap:10px">
         <div style="display:flex;align-items:center;gap:14px">
           <div class="lb-rank ${rc}">${rd}</div>
