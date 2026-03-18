@@ -384,7 +384,7 @@ text-transform:uppercase;
     <div class="how-step"><div class="step-c">1</div><div><div class="step-t">Make 16 Picks</div><div class="step-d">For each seed (1–16) pick the team you think will go furthest. There are 4 teams per seed — one from each region.</div></div></div>
     <div class="how-step" style="animation-delay:.04s"><div class="step-c">2</div><div><div class="step-t">Score Points for Every Win</div><div class="step-d">Each win by your picked team earns points equal to their seed:<table class="pts-tbl"><thead><tr><th>Seed</th><th>Pts/Win</th><th>3 Wins =</th></tr></thead><tbody><tr><td>1-seed</td><td class="pts-c">1 pt</td><td>3 pts</td></tr><tr><td>5-seed</td><td class="pts-c">5 pts</td><td>15 pts</td></tr><tr><td>12-seed</td><td class="pts-c">12 pts</td><td>36 pts</td></tr><tr><td>15-seed</td><td class="pts-c">15 pts</td><td>45 pts</td></tr></tbody></table></div></div></div>
     <div class="how-step" style="animation-delay:.08s"><div class="step-c">3</div><div><div class="step-t">Leaderboard Updates Automatically</div><div class="step-d">Your picks sync to a shared leaderboard instantly. Everyone in the group sees the same standings in real time — no codes or manual steps needed.</div></div></div>
-    <div class="how-step" style="animation-delay:.12s"><div class="step-c">4</div><div><div class="step-t">Scores Refresh Automatically</div><div class="step-d">Live scores from ESPN update every hour automatically. You can also hit <strong>⟳ Refresh Scores</strong> on the Leaderboard tab anytime to force an immediate update.</div></div></div>
+    <div class="how-step" style="animation-delay:.12s"><div class="step-c">4</div><div><div class="step-t">Scores Refresh Automatically</div><div class="step-d">Live scores from ESPN update every 30 minutes automatically. You can also hit <strong>⟳ Refresh Scores</strong> on the Leaderboard tab anytime to force an immediate update.</div></div></div>
     <div class="how-step" style="animation-delay:.16s"><div class="step-c">5</div><div><div class="step-t">Picks Lock at Tip-Off</div><div class="step-d">All picks must be in before <strong>Thursday March 19</strong>. After the First Round starts, no more changes.</div></div></div>
     <div class="divider"></div>
     <div class="pane-title" style="font-size:1.15rem;margin-bottom:12px">2026 SCHEDULE</div>
@@ -551,7 +551,7 @@ function init() {
     renderSeeds();
     if (!document.getElementById("pane-lb").classList.contains("hidden")) renderLeaderboard();
     toast("Scores auto-updated ⟳");
-  }, 60 * 60 * 1000);
+  }, 30 * 60 * 1000);
 
   if (playerName) {
     // Already have a name — dismiss modal and push to leaderboard
@@ -903,20 +903,42 @@ async function deletePlayer(name) {
   renderLeaderboard();
 }
 
-// Touch-hold / long-press to delete, short tap opens detail
-let _holdTimer = null;
-let _holdFired = false;
+// Touch handlers — ignore scrolling, short tap = modal, long hold = delete
+let _holdTimer    = null;
+let _holdFired    = false;
+let _touchStartTime = 0;
+let _touchStartY  = 0;
+let _touchMoved   = false;
+
 function onEntryTouchStart(e, name) {
-  _holdFired = false;
+  _holdFired    = false;
+  _touchMoved   = false;
+  _touchStartTime = Date.now();
+  _touchStartY  = e.touches?.[0]?.clientY ?? 0;
   _holdTimer = setTimeout(() => {
+    if (_touchMoved) return; // ignore if scrolling
     _holdFired = true;
     navigator.vibrate?.(40);
     deletePlayer(name);
-  }, 600);
+  }, 700);
 }
+
+function onEntryTouchMove(e) {
+  const dy = Math.abs((e.touches?.[0]?.clientY ?? 0) - _touchStartY);
+  if (dy > 8) { // moved more than 8px = scrolling
+    _touchMoved = true;
+    clearTimeout(_holdTimer);
+  }
+}
+
 function onEntryTouchEnd(e, name, picks) {
   clearTimeout(_holdTimer);
-  if (!_holdFired) openPlayerModal(name, picks);
+  const elapsed = Date.now() - _touchStartTime;
+  if (!_holdFired && !_touchMoved && elapsed < 300) {
+    openPlayerModal(name, picks);
+  }
+  _holdFired  = false;
+  _touchMoved = false;
 }
 
 // ════════════════════════════════════════════
@@ -964,7 +986,7 @@ async function renderLeaderboard() {
 
   if (lastRefresh) {
     document.getElementById("refresh-time").textContent = `Updated ${lastRefresh.toLocaleTimeString()}`;
-    badge.innerHTML = `<div class="live-badge"><span class="live-dot"></span>ESPN Live · Auto-updates hourly</div>`;
+    badge.innerHTML = `<div class="live-badge"><span class="live-dot"></span>ESPN Live · Auto-updates every 30 min</div>`;
   } else {
     badge.innerHTML = roundBanner();
   }
@@ -1065,6 +1087,7 @@ async function renderLeaderboard() {
         onmouseup="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
         onmouseleave="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
         ontouchstart="onEntryTouchStart(event,'${p.name}')"
+        ontouchmove="onEntryTouchMove(event)"
         ontouchend="onEntryTouchEnd(event,'${p.name}',${JSON.stringify(picks)})"
         style="cursor:pointer;flex-direction:column;align-items:stretch;gap:10px">
         <div style="display:flex;align-items:center;gap:14px">
