@@ -117,8 +117,9 @@ text-transform:uppercase;
 }
 .tile { background:var(–surface); border:1.5px solid var(–border); border-radius:10px; padding:10px 12px; cursor:pointer; transition:all .18s; user-select:none; position:relative; overflow:hidden; }
 .tile:not(.locked):hover { border-color:var(–scarlet); background:rgba(187,0,0,.1); transform:translateY(-1px); }
-.tile.sel { border-color:var(–scarlet); background:rgba(187,0,0,.15); }
-.tile.sel::after { content:‘✓’; position:absolute; top:5px; right:8px; color:var(–scarlet); font-size:.72rem; font-weight:800; }
+.tile.sel { border:3px solid var(–scarlet); background:rgba(187,0,0,.22); box-shadow:0 0 12px rgba(187,0,0,.5), inset 0 0 8px rgba(187,0,0,.15); }
+.tile.sel::after { content:‘✓’; position:absolute; top:4px; right:7px; color:#fff; background:var(–scarlet); border-radius:50%; width:16px; height:16px; font-size:.65rem; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1; }
+.tile.sel .tile-name { color:#fff; font-weight:900; }
 .tile.locked { cursor:default; }
 .tile.winning .tile-name { color:var(–green); }
 .tile.elim-tile { opacity:.38; }
