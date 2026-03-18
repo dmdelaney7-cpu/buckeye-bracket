@@ -82,14 +82,39 @@
 .banner { background:rgba(187,0,0,.07); border:1px solid rgba(187,0,0,.25); border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:.8rem; color:#ccc; line-height:1.6; }
 .banner strong { color:var(–text); }
 
-.seed-row { margin-bottom:12px; }
-.seed-hdr { display:flex; align-items:center; gap:10px; padding:5px 0 7px; border-bottom:1px solid var(–border); margin-bottom:7px; }
-.seed-n { font-family:var(–fd); font-size:1.5rem; font-weight:700; color:var(–scarlet); line-height:1; min-width:28px; }
-.seed-lbl { font-size:.57rem; text-transform:uppercase; letter-spacing:1.5px; color:var(–muted); font-weight:700; }
-.seed-pts { font-size:.6rem; font-weight:800; color:var(–gold); background:rgba(199,160,8,.1); border:1px solid rgba(199,160,8,.25); border-radius:4px; padding:1px 5px; margin-top:1px; width:fit-content; }
-.seed-pick { margin-left:auto; font-size:.78rem; font-weight:800; color:var(–scarlet); }
-.teams-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
-@media(max-width:520px){ .teams-grid { grid-template-columns:repeat(2,1fr); } }
+/* Sticky region header on picks tab */
+.region-header-bar {
+position:sticky;
+top:58px; /* sits just below the app header */
+z-index:100;
+background:rgba(13,13,13,.97);
+backdrop-filter:blur(10px);
+display:grid;
+grid-template-columns:44px repeat(4,1fr);
+gap:7px;
+padding:8px 0 6px;
+border-bottom:1px solid rgba(187,0,0,.3);
+margin-bottom:4px;
+}
+.region-header-bar .rh-seed { /* empty spacer cell */ }
+.region-header-bar .rh-label {
+font-family:var(–fd);
+font-size:.75rem;
+font-weight:600;
+letter-spacing:1.5px;
+color:var(–scarlet);
+text-align:center;
+text-transform:uppercase;
+}
+
+.seed-row { margin-bottom:8px; }
+.seed-hdr { display:flex; align-items:center; gap:10px; padding:5px 0 5px; border-bottom:1px solid var(–border); margin-bottom:5px; }
+.teams-grid-aligned { display:grid; grid-template-columns:44px repeat(4,1fr); gap:7px; align-items:start; }
+.seed-col-left { display:flex; flex-direction:column; justify-content:center; padding-top:2px; }
+@media(max-width:520px){
+.region-header-bar { grid-template-columns:36px repeat(4,1fr); }
+.teams-grid-aligned { grid-template-columns:36px repeat(4,1fr); }
+}
 .tile { background:var(–surface); border:1.5px solid var(–border); border-radius:10px; padding:10px 12px; cursor:pointer; transition:all .18s; user-select:none; position:relative; overflow:hidden; }
 .tile:not(.locked):hover { border-color:var(–scarlet); background:rgba(187,0,0,.1); transform:translateY(-1px); }
 .tile.sel { border-color:var(–scarlet); background:rgba(187,0,0,.15); }
@@ -254,6 +279,14 @@
     </div>
   </div>
   <div class="banner">🏀 <strong>Scoring:</strong> Each win by your team = that seed number in points. A <strong style="color:var(--gold)">12-seed</strong> on a run scores 12 pts/win. A 1-seed winning it all scores just 6 pts total.</div>
+  <!-- Sticky region header -->
+  <div class="region-header-bar">
+    <div class="rh-seed"></div>
+    <div class="rh-label">East</div>
+    <div class="rh-label">West</div>
+    <div class="rh-label">Midwest</div>
+    <div class="rh-label">South</div>
+  </div>
   <div id="seeds-wrap"></div>
   <!-- Progress-based CTA that appears after all 16 picks are made -->
   <div id="picks-cta" class="hidden" style="background:rgba(187,0,0,.1);border:1.5px solid var(--scarlet);border-radius:12px;padding:16px 20px;margin:16px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
@@ -625,6 +658,8 @@ async function refreshScores() {
 // ════════════════════════════════════════════
 // PICKS
 // ════════════════════════════════════════════
+const REGIONS = ["East","West","Midwest","South"];
+
 function renderSeeds() {
   const wrap = document.getElementById("seeds-wrap");
   wrap.innerHTML = "";
@@ -632,29 +667,36 @@ function renderSeeds() {
     const pick = myPicks[s];
     const row  = document.createElement("div");
     row.className = "seed-row";
-    row.innerHTML = `
-      <div class="seed-hdr">
-        <div class="seed-n">${s}</div>
-        <div><div class="seed-lbl">Seed</div><div class="seed-pts">${s} pt${s>1?"s":""}/win</div></div>
-        ${pick ? `<div class="seed-pick">→ ${pick}</div>` : ""}
-      </div>
-      <div class="teams-grid" id="g${s}"></div>`;
-    wrap.appendChild(row);
-    const grid = row.querySelector("#g"+s);
-    (SEEDS[s]||[]).forEach(({team,r}) => {
+
+    // Build one tile per region in column order
+    const tileCells = REGIONS.map(region => {
+      const entry = BRACKET.find(t => t.seed===s && t.region===region);
+      if (!entry) return `<div></div>`;
+      const {team} = entry;
       const wins  = results[team]||0;
       const isOut = eliminated[team];
-      const t = document.createElement("div");
-      t.className = ["tile", pick===team?"sel":"", new Date()>=LOCK?"locked":"", wins>0&&!isOut?"winning":"", isOut&&pick!==team?"elim-tile":""].filter(Boolean).join(" ");
-      t.innerHTML  = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">${logo(team,22)}<div class="tile-name">${team}</div></div><div class="tile-region">${r}</div>`;
-      if (wins>0) t.innerHTML += `<div class="tile-wins">${isOut?"☠️":"🏀"} ${wins}W · ${wins*s}pts</div>`;
-      if (new Date()<LOCK) t.onclick = () => makePick(s, team);
-      grid.appendChild(t);
-    });
+      const classes = ["tile", pick===team?"sel":"", new Date()>=LOCK?"locked":"", wins>0&&!isOut?"winning":"", isOut&&pick!==team?"elim-tile":""].filter(Boolean).join(" ");
+      const winsHtml = wins>0 ? `<div class="tile-wins">${isOut?"☠️":"🏀"} ${wins}W·${wins*s}pt</div>` : "";
+      return `<div class="${classes}" onclick="${new Date()<LOCK?`makePick(${s},'${team.replace(/'/g,"\\'")}')`:""}" style="${new Date()>=LOCK?"cursor:default":""}">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">${logo(team,20)}<div class="tile-name" style="font-size:.76rem">${team}</div></div>
+        ${winsHtml}
+      </div>`;
+    }).join("");
+
+    row.innerHTML = `
+      <div class="teams-grid-aligned">
+        <div class="seed-col-left">
+          <div class="seed-n">${s}</div>
+          <div class="seed-pts" style="font-size:.55rem;margin-top:2px">${s}pt/W</div>
+        </div>
+        ${tileCells}
+      </div>`;
+    wrap.appendChild(row);
   }
   updateBar();
 }
 function makePick(seed, team) {
+  if (new Date() >= LOCK) return;
   myPicks[seed] = team;
   localStorage.setItem("mm26_picks", JSON.stringify(myPicks));
   renderSeeds();
