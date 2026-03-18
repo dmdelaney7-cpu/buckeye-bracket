@@ -484,7 +484,10 @@ BRACKET.forEach(({seed,team,region}) => {
 
 const ESPN_MAP = {"Miami (FL)":"Miami FL","St. John's (NY)":"St. John's","Saint Mary's (CA)":"Saint Mary's","Hawai'i":"Hawaii"};
 const LOCK = new Date("2026-03-19T11:00:00-04:00");
-const GAS = "https://script.google.com/macros/s/AKfycbwHaroTQdhKbQzZ57Cy3MXl6p62hmvFozgkHCQkw-_u3Mv4jjYFc5G09vF-wQKZw2AP/exec";
+const GAS  = "https://script.google.com/macros/s/AKfycbwHaroTQdhKbQzZ57Cy3MXl6p62hmvFozgkHCQkw-_u3Mv4jjYFc5G09vF-wQKZw2AP/exec";
+
+// Read group from URL — e.g. buckeyebracket.netlify.app?g=family
+const GROUP = (new URLSearchParams(window.location.search).get("g") || "default").replace(/[^a-zA-Z0-9_]/g,"");
 
 // Verified ESPN team IDs → logo URLs
 // Format: https://a.espncdn.com/i/teamlogos/ncaa/500/{id}.png
@@ -530,10 +533,10 @@ let busy        = false;
 // INIT
 // ════════════════════════════════════════════
 function init() {
-  playerName = localStorage.getItem("mm26_name")    || "";
-  myPicks    = JSON.parse(localStorage.getItem("mm26_picks")   || "{}");
+  playerName = localStorage.getItem(`mm26_name_${GROUP}`)    || "";
+  myPicks    = JSON.parse(localStorage.getItem(`mm26_picks_${GROUP}`)   || "{}");
   results    = JSON.parse(localStorage.getItem("mm26_results") || "{}");
-  eliminated = JSON.parse(localStorage.getItem("mm26_elim")    || "{}");
+  eliminated = JSON.parse(localStorage.getItem("mm26_elim")   || "{}");
 
   document.getElementById("name-inp").addEventListener("keydown", e => { if(e.key==="Enter") startPlaying(); });
 
@@ -571,9 +574,9 @@ async function fbPush() {
   try {
     const params = new URLSearchParams({
       action: "write",
+      g: GROUP,
       name: playerName,
-      picks: JSON.stringify(myPicks),
-      deleted: "false"
+      picks: JSON.stringify(myPicks)
     });
     await fetch(`${GAS}?${params.toString()}`);
   } catch(e) { console.warn("Sync write error:", e); }
@@ -581,7 +584,7 @@ async function fbPush() {
 
 async function fbPull() {
   try {
-    const res = await fetch(`${GAS}?action=read&t=${Date.now()}`);
+    const res = await fetch(`${GAS}?action=read&g=${GROUP}&t=${Date.now()}`);
     if (!res.ok) return null;
     const data = await res.json();
     if (!Array.isArray(data)) return null;
@@ -593,7 +596,7 @@ async function fbPull() {
 
 async function fbDelete(name) {
   try {
-    const params = new URLSearchParams({ action: "delete", name: name });
+    const params = new URLSearchParams({ action: "delete", g: GROUP, name: name });
     await fetch(`${GAS}?${params.toString()}`);
   } catch(e) { console.warn("Sync delete error:", e); }
 }
@@ -605,7 +608,7 @@ function startPlaying() {
   const v = document.getElementById("name-inp").value.trim();
   if (!v) { toast("Enter your name first!"); return; }
   playerName = v;
-  localStorage.setItem("mm26_name", playerName);
+  localStorage.setItem(`mm26_name_${GROUP}`, playerName);
   document.getElementById("name-modal").style.display = "none";
   document.getElementById("player-chip").textContent = "👤 " + playerName;
   updateLockPill();
@@ -623,7 +626,7 @@ function showApp() {
 function switchPlayer() {
   if (!confirm("Switch player? Your picks are saved.")) return;
   playerName = "";
-  localStorage.removeItem("mm26_name");
+  localStorage.removeItem(`mm26_name_${GROUP}`);
   document.getElementById("name-inp").value = "";
   document.getElementById("name-modal").style.display = "flex";
   document.getElementById("player-chip").textContent = "👤 Set name";
@@ -852,7 +855,7 @@ function renderSeeds(allPlayers=[]) {
 function makePick(seed, team) {
   if (new Date() >= LOCK) return;
   myPicks[seed] = team;
-  localStorage.setItem("mm26_picks", JSON.stringify(myPicks));
+  localStorage.setItem(`mm26_picks_${GROUP}`, JSON.stringify(myPicks));
   renderSeeds();
   fbPush();
   toast(`Picked ${team} for the ${seed}-seed ✓`);
@@ -860,7 +863,7 @@ function makePick(seed, team) {
 function clearPicks() {
   if (!confirm("Clear all picks?")) return;
   myPicks = {};
-  localStorage.setItem("mm26_picks","{}");
+  localStorage.setItem(`mm26_picks_${GROUP}`,"{}");
   renderSeeds();
   fbPush();
   toast("Picks cleared");
