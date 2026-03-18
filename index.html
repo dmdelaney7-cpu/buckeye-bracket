@@ -84,7 +84,7 @@
 
 .seed-row { margin-bottom:12px; }
 .seed-hdr { display:flex; align-items:center; gap:10px; padding:5px 0 7px; border-bottom:1px solid var(–border); margin-bottom:7px; }
-.seed-n { font-family:var(–fd); font-size:1.5rem; font-weight:700; color:var(–grey-light); line-height:1; min-width:28px; }
+.seed-n { font-family:var(–fd); font-size:1.5rem; font-weight:700; color:var(–scarlet); line-height:1; min-width:28px; }
 .seed-lbl { font-size:.57rem; text-transform:uppercase; letter-spacing:1.5px; color:var(–muted); font-weight:700; }
 .seed-pts { font-size:.6rem; font-weight:800; color:var(–gold); background:rgba(199,160,8,.1); border:1px solid rgba(199,160,8,.25); border-radius:4px; padding:1px 5px; margin-top:1px; width:fit-content; }
 .seed-pick { margin-left:auto; font-size:.78rem; font-weight:800; color:var(–scarlet); }
@@ -106,7 +106,7 @@
 @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 .lb-entry.me { border-color:var(–scarlet); background:rgba(187,0,0,.08); }
 .lb-rank { font-family:var(–fd); font-size:1.6rem; font-weight:700; min-width:40px; line-height:1; }
-.r1{color:var(–gold);text-shadow:0 0 12px rgba(199,160,8,.4)} .r2{color:#94a3b8} .r3{color:#b45309} .rn{color:var(–muted)}
+.r1{color:var(–gold);text-shadow:0 0 12px rgba(199,160,8,.4)} .r2{color:var(–silver)} .r3{color:#b45309} .rn{color:var(–muted)}
 .lb-name { font-weight:800; font-size:.95rem; }
 .lb-meta { font-size:.68rem; color:var(–muted); margin-top:2px; }
 .lb-sp { flex:1; }
@@ -144,7 +144,7 @@
 
 .sc { border-radius:6px; padding:6px 7px; display:flex; flex-direction:column; gap:2px; transition:transform .15s, opacity .2s, filter .2s; }
 .sc:hover { transform:translateY(-1px); }
-.sc-team { font-size:.72rem; font-weight:800; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sc-team { font-size:.68rem; font-weight:800; line-height:1.3; white-space:normal; word-break:break-word; }
 .sc-badge { font-size:.55rem; font-weight:800; letter-spacing:.3px; padding:1px 5px; border-radius:3px; width:fit-content; margin-top:1px; text-transform:uppercase; white-space:nowrap; }
 
 .sc.alive { background:rgba(34,197,94,.08); border:1.5px solid rgba(34,197,94,.3); }
@@ -193,27 +193,27 @@
 <body>
 <div id="toast"></div>
 
-<!-- ══════════════════ WELCOME ══════════════════ -->
+<!-- ══════════════════ NAME MODAL ══════════════════ -->
 
-<div id="screen-welcome">
-  <div class="leaf">🌰</div>
-  <div class="logo">BUCKEYE BRACKET</div>
-  <div class="logo-yr">MARCH MADNESS 2026</div>
-  <div class="logo-tag">Pick one team per seed. Score points every time they win.<br>Upsets pay big — O-H!</div>
-  <div class="setup-form">
-    <input class="txt" id="name-inp" type="text" placeholder="Your name…" maxlength="24" autocomplete="off">
-    <button class="btn-go" onclick="startPlaying()">Enter →</button>
-  </div>
-  <div class="how-chips">
-    <div class="how-chip"><div class="chip-icon">🎯</div><div class="chip-txt"><strong>16 Picks</strong>One team per seed line</div></div>
-    <div class="how-chip"><div class="chip-icon">🏀</div><div class="chip-txt"><strong>Win = Points</strong>Seed # pts per win</div></div>
-    <div class="how-chip"><div class="chip-icon">🔥</div><div class="chip-txt"><strong>Upsets Pay</strong>12-seed beats 1-seed</div></div>
+<div id="name-modal" style="position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--surface);border:1.5px solid rgba(187,0,0,.4);border-radius:18px;padding:32px 28px;max-width:380px;width:100%;text-align:center;animation:up .4s ease both">
+    <div style="font-size:2.5rem;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(187,0,0,.6))">🌰</div>
+    <div style="font-family:var(--fd);font-size:2rem;letter-spacing:3px;color:var(--scarlet);text-shadow:0 0 20px rgba(187,0,0,.4)">BUCKEYE BRACKET</div>
+    <div style="font-family:var(--fd);font-size:.9rem;color:var(--silver);letter-spacing:4px;margin-top:4px;margin-bottom:20px">MARCH MADNESS 2026</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:20px;line-height:1.6">Enter your name to make picks and join the leaderboard</div>
+    <div style="display:flex;gap:10px">
+      <input class="txt" id="name-inp" type="text" placeholder="Your name…" maxlength="24" autocomplete="off" style="flex:1">
+      <button class="btn-go" onclick="startPlaying()">Enter →</button>
+    </div>
+    <div style="margin-top:14px">
+      <span onclick="browseWithoutName()" style="font-size:.72rem;color:var(--muted);text-decoration:underline;cursor:pointer">Just browsing — skip for now</span>
+    </div>
   </div>
 </div>
 
 <!-- ══════════════════ MAIN APP ══════════════════ -->
 
-<div id="screen-app" class="hidden">
+<div id="screen-app">
   <header class="hdr">
     <div class="hdr-in">
       <div class="h-brand">
@@ -224,7 +224,7 @@
         </div>
       </div>
       <div class="h-right">
-        <div class="pchip" id="player-chip" onclick="switchPlayer()">👤 —</div>
+        <div class="pchip" id="player-chip" onclick="playerName?switchPlayer():document.getElementById('name-modal').style.display='flex'">👤 —</div>
         <div class="pill" id="lock-pill"></div>
       </div>
     </div>
@@ -460,7 +460,30 @@ function init() {
 
   document.getElementById("name-inp").addEventListener("keydown", e => { if(e.key==="Enter") startPlaying(); });
 
-  if (playerName) showApp();
+  // Show app shell immediately, modal on top if no name
+  renderSeeds();
+  showTab("picks");
+  updateLockPill();
+  fetchESPN().then(() => renderSeeds());
+  setInterval(async () => {
+    await fetchESPN();
+    renderSeeds();
+    if (!document.getElementById("pane-lb").classList.contains("hidden")) renderLeaderboard();
+    toast("Scores auto-updated ⟳");
+  }, 60 * 60 * 1000);
+
+  if (playerName) {
+    // Already have a name — dismiss modal and push to leaderboard
+    document.getElementById("name-modal").style.display = "none";
+    document.getElementById("player-chip").textContent = "👤 " + playerName;
+    fbPush();
+  }
+  // Otherwise modal stays visible
+}
+
+function browseWithoutName() {
+  document.getElementById("name-modal").style.display = "none";
+  document.getElementById("player-chip").textContent = "👤 Set name";
 }
 
 // ════════════════════════════════════════════
@@ -510,35 +533,27 @@ function startPlaying() {
   if (!v) { toast("Enter your name first!"); return; }
   playerName = v;
   localStorage.setItem("mm26_name", playerName);
-  showApp();
-}
-function showApp() {
-  document.getElementById("screen-welcome").classList.add("hidden");
-  document.getElementById("screen-app").classList.remove("hidden");
+  document.getElementById("name-modal").style.display = "none";
   document.getElementById("player-chip").textContent = "👤 " + playerName;
   updateLockPill();
   renderSeeds();
-  showTab("picks");
-  // Push picks, fetch ESPN scores
   fbPush();
-  fetchESPN().then(() => renderSeeds());
-  // Auto-refresh scores every 60 minutes
-  setInterval(async () => {
-    await fetchESPN();
-    renderSeeds();
-    // If leaderboard tab is active, refresh it too
-    if (!document.getElementById("pane-lb").classList.contains("hidden")) {
-      renderLeaderboard();
-    }
-    toast("Scores auto-updated ⟳");
-  }, 60 * 60 * 1000);
+}
+function showApp() {
+  // Legacy — no longer needed but kept for safety
+  document.getElementById("name-modal").style.display = "none";
+  document.getElementById("player-chip").textContent = "👤 " + playerName;
+  updateLockPill();
+  renderSeeds();
+  fbPush();
 }
 function switchPlayer() {
   if (!confirm("Switch player? Your picks are saved.")) return;
   playerName = "";
-  document.getElementById("screen-app").classList.add("hidden");
-  document.getElementById("screen-welcome").classList.remove("hidden");
+  localStorage.removeItem("mm26_name");
   document.getElementById("name-inp").value = "";
+  document.getElementById("name-modal").style.display = "flex";
+  document.getElementById("player-chip").textContent = "👤 Set name";
 }
 async function showTab(t) {
   ["picks","lb","status","how"].forEach(id => {
@@ -742,24 +757,42 @@ async function renderLeaderboard() {
       const rc = i===0?"r1":i===1?"r2":i===2?"r3":"rn";
       const rd = i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1);
       const isMe = p.name===playerName;
-      const pickLogos = Object.values(p.picks||{}).slice(0,5).map(t=>logo(t,18)).join("");
+      const picks = p.picks||{};
+
+      // Build all 16 logo tiles in seed order
+      const logoGrid = Array.from({length:16},(_,i)=>i+1).map(s => {
+        const team = picks[s];
+        if (!team) return `<div style="width:24px;height:24px;background:var(--surface2);border-radius:4px;border:1px solid var(--border)"></div>`;
+        const isOut = eliminated[team];
+        const isWin = results[team]>0 && !isOut;
+        const id = LOGO_IDS[team];
+        const src = id ? `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png` : "";
+        if (!src) return `<div style="width:24px;height:24px;background:var(--surface2);border-radius:4px;font-size:.5rem;display:flex;align-items:center;justify-content:center;color:var(--muted)">${s}</div>`;
+        return `<div style="position:relative;width:24px;height:24px" title="${team}">
+          <img src="${src}" width="24" height="24" style="border-radius:4px;object-fit:contain;display:block;${isOut?"opacity:.25;filter:grayscale(1)":""}${isWin?"outline:1px solid var(--green);border-radius:4px":""}" onerror="this.style.display='none'">
+          ${isOut?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:var(--red)">✕</div>`:""}
+        </div>`;
+      }).join("");
+
       return `<div class="lb-entry${isMe?" me":""}"
         onmousedown="onEntryTouchStart(event,'${p.name}')"
         onmouseup="onEntryTouchEnd()"
         onmouseleave="onEntryTouchEnd()"
         ontouchstart="onEntryTouchStart(event,'${p.name}')"
         ontouchend="onEntryTouchEnd()"
-        style="cursor:pointer">
-        <div class="lb-rank ${rc}">${rd}</div>
-        <div>
-          <div class="lb-name">${p.name}${isMe?" (you)":""}</div>
-          <div class="lb-meta" style="display:flex;align-items:center;gap:4px;margin-top:4px">${pickLogos}<span style="margin-left:2px">${p.pickCount}/16 picks</span></div>
+        style="cursor:pointer;flex-direction:column;align-items:stretch;gap:10px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="lb-rank ${rc}">${rd}</div>
+          <div style="flex:1">
+            <div class="lb-name">${p.name}${isMe?" (you)":""}</div>
+            <div class="lb-meta">${p.pickCount}/16 picks</div>
+          </div>
+          <div>
+            <div class="lb-score">${p.score}</div>
+            <div class="lb-slbl">PTS</div>
+          </div>
         </div>
-        <div class="lb-sp"></div>
-        <div>
-          <div class="lb-score">${p.score}</div>
-          <div class="lb-slbl">PTS</div>
-        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;padding-top:4px;border-top:1px solid var(--border)">${logoGrid}</div>
       </div>`;
     }).join("");
 }
@@ -776,9 +809,9 @@ function teamStatus(team) {
 }
 function statusLabel(status, wins) {
   if (status==="champion") return "🏆 Champ";
-  if (status==="elim")     return `☠️ Out`;
+  if (status==="elim")     return "Out";
   if (status==="alive")    return `🏀 ${wins}W`;
-  return "⏳ —";
+  return "—";
 }
 
 // Which player is being filtered (null = no filter)
