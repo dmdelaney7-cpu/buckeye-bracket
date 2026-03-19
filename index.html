@@ -484,17 +484,49 @@ BRACKET.forEach(({seed,team,region}) => {
 });
 
 const ESPN_MAP = {
+  // Full display names ESPN returns (most reliable)
+  "Nebraska Cornhuskers":"Nebraska", "TCU Horned Frogs":"TCU",
+  "Ohio State Buckeyes":"Ohio State", "Troy Trojans":"Troy",
+  "Texas Longhorns":"Texas", "Howard Bison":"Howard",
+  "Miami (OH) RedHawks":"Miami OH", "SMU Mustangs":"SMU",
+  "Prairie View A&M Panthers":"Prairie View A&M", "Lehigh Mountain Hawks":"Lehigh",
+  "Duke Blue Devils":"Duke", "Arizona Wildcats":"Arizona",
+  "Michigan Wolverines":"Michigan", "Florida Gators":"Florida",
+  "UConn Huskies":"UConn", "Purdue Boilermakers":"Purdue",
+  "Iowa State Cyclones":"Iowa State", "Houston Cougars":"Houston",
+  "Michigan State Spartans":"Michigan State", "Gonzaga Bulldogs":"Gonzaga",
+  "Virginia Cavaliers":"Virginia", "Illinois Fighting Illini":"Illinois",
+  "Kansas Jayhawks":"Kansas", "Arkansas Razorbacks":"Arkansas",
+  "Alabama Crimson Tide":"Alabama",
+  "St. John's Red Storm":"St. John's", "Wisconsin Badgers":"Wisconsin",
+  "Texas Tech Red Raiders":"Texas Tech", "Vanderbilt Commodores":"Vanderbilt",
+  "Louisville Cardinals":"Louisville", "BYU Cougars":"BYU",
+  "Tennessee Volunteers":"Tennessee", "North Carolina Tar Heels":"North Carolina",
+  "UCLA Bruins":"UCLA", "Miami Hurricanes":"Miami FL",
+  "Kentucky Wildcats":"Kentucky", "Saint Mary's Gaels":"Saint Mary's",
+  "Villanova Wildcats":"Villanova", "Georgia Bulldogs":"Georgia",
+  "Clemson Tigers":"Clemson", "Iowa Hawkeyes":"Iowa",
+  "Utah State Aggies":"Utah State", "Saint Louis Billikens":"Saint Louis",
+  "UCF Knights":"UCF", "Missouri Tigers":"Missouri",
+  "Santa Clara Broncos":"Santa Clara", "Texas A&M Aggies":"Texas A&M",
+  "Northern Iowa Panthers":"Northern Iowa", "High Point Panthers":"High Point",
+  "Akron Zips":"Akron", "McNeese Cowboys":"McNeese",
+  "Cal Baptist Lancers":"Cal Baptist", "Hawaii Rainbow Warriors":"Hawaii",
+  "Hofstra Pride":"Hofstra", "North Dakota State Bison":"North Dakota State",
+  "Kennesaw State Owls":"Kennesaw State", "Wright State Raiders":"Wright State",
+  "Penn Quakers":"Penn", "Furman Paladins":"Furman",
+  "Queens Royals":"Queens", "Tennessee State Tigers":"Tennessee State",
+  "Idaho Vandals":"Idaho", "Siena Saints":"Siena", "LIU Sharks":"LIU",
+  "South Florida Bulls":"South Florida", "VCU Rams":"VCU",
+  "Ohio State":"Ohio State",
+  // Short name overrides
   "Miami (FL)":"Miami FL", "Miami (Ohio)":"Miami OH", "Miami (OH)":"Miami OH",
   "St. John's (NY)":"St. John's", "Saint Mary's (CA)":"Saint Mary's",
-  "Hawai'i":"Hawaii", "NC State":"NC State",
-  "Ohio St":"Ohio State", "Michigan St":"Michigan State",
-  "North Carolina":"North Carolina", "Prairie View":"Prairie View A&M",
-  "Prairie View A&M Panthers":"Prairie View A&M",
-  "Tennessee St":"Tennessee State", "Wright St":"Wright State",
-  "Kennesaw St":"Kennesaw State", "North Dakota St":"North Dakota State",
-  "Cal Baptist":"Cal Baptist", "McNeese St":"McNeese", "McNeese State":"McNeese",
-  "Saint Louis":"Saint Louis", "Santa Clara":"Santa Clara",
-  "High Point":"High Point", "Queens (NC)":"Queens",
+  "Hawai'i":"Hawaii", "McNeese St.":"McNeese", "McNeese State":"McNeese",
+  "Prairie View":"Prairie View A&M", "Ohio St":"Ohio State",
+  "Michigan St":"Michigan State", "Tennessee St":"Tennessee State",
+  "Wright St":"Wright State", "Kennesaw St":"Kennesaw State",
+  "North Dakota St":"North Dakota State", "Queens (NC)":"Queens",
 };
 const LOCK = new Date("2026-03-19T11:00:00-04:00");
 const GAS  = "https://script.google.com/macros/s/AKfycbwHaroTQdhKbQzZ57Cy3MXl6p62hmvFozgkHCQkw-_u3Mv4jjYFc5G09vF-wQKZw2AP/exec";
@@ -742,9 +774,27 @@ async function fetchESPN() {
 
   function mapName(team) {
     if (!team) return "";
-    const display = ESPN_MAP[team.displayName] || team.displayName || "";
-    const short   = ESPN_MAP[team.shortDisplayName] || team.shortDisplayName || "";
-    return display || short;
+    // First try direct mapping
+    const display = ESPN_MAP[team.displayName] || ESPN_MAP[team.shortDisplayName] || "";
+    if (display) return display;
+
+    // Try shortDisplayName directly (often matches our bracket names)
+    const short = team.shortDisplayName || "";
+    if (short) {
+      const directMatch = BRACKET.find(t => t.team === short);
+      if (directMatch) return short;
+    }
+
+    // Strip nickname from full display name
+    // e.g. "Nebraska Cornhuskers" → "Nebraska", "TCU Horned Frogs" → "TCU"
+    const full = team.displayName || "";
+    for (const entry of BRACKET) {
+      if (full.startsWith(entry.team)) return entry.team;
+      if (entry.team.startsWith(full.split(" ")[0]) && full.includes(entry.team.split(" ")[0])) return entry.team;
+    }
+
+    // Last resort — return display name as-is
+    return full;
   }
 
   try {
