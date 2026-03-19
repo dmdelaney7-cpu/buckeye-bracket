@@ -451,7 +451,7 @@ const BRACKET = [
   {seed:4, team:"Alabama",           region:"Midwest"},
   {seed:13,team:"Hofstra",           region:"Midwest"},
   {seed:6, team:"Tennessee",         region:"Midwest"},
-  {seed:11,team:"SMU / Miami OH",      region:"Midwest"},
+  {seed:11,team:"Miami OH",           region:"Midwest"},
   {seed:3, team:"Virginia",          region:"Midwest"},
   {seed:14,team:"Wright State",      region:"Midwest"},
   {seed:7, team:"Kentucky",          region:"Midwest"},
@@ -459,7 +459,7 @@ const BRACKET = [
   {seed:2, team:"Iowa State",        region:"Midwest"},
   {seed:15,team:"Tennessee State",   region:"Midwest"},
   {seed:1, team:"Florida",           region:"South"},
-  {seed:16,team:"Lehigh / PV A&M",     region:"South"},
+  {seed:16,team:"Prairie View A&M",    region:"South"},
   {seed:8, team:"Clemson",           region:"South"},
   {seed:9, team:"Iowa",              region:"South"},
   {seed:5, team:"Vanderbilt",        region:"South"},
@@ -509,7 +509,7 @@ const LOGO_IDS = {
   "Vanderbilt":238, "McNeese":2378, "Nebraska":158, "Troy":2653,
   "North Carolina":153, "VCU":2670, "Illinois":356, "Penn":219,
   "Saint Mary's":2608, "Texas A&M":245, "Houston":248, "Idaho":70,
-  "Siena":73,
+  "Siena":73, "Miami OH":193, "Prairie View A&M":2504,
 };
 
 function logo(team, size=20) {
@@ -531,6 +531,47 @@ let lastRefresh = null;
 let busy        = false;
 
 // ════════════════════════════════════════════
+// FIRST FOUR MIGRATION
+// Auto-updates picks that used combined names
+// ════════════════════════════════════════════
+const FIRST_FOUR_MAP = {
+  "SMU / Miami OH": "Miami OH",
+  "Lehigh / PV A&M": "Prairie View A&M"
+};
+
+async function migrateFirstFour() {
+  // Migrate all players in the sheet
+  const data = await fbPull();
+  if (!data) return;
+  let anyChanged = false;
+  for (const [key, player] of Object.entries(data)) {
+    const picks = player.picks || {};
+    let changed = false;
+    Object.entries(picks).forEach(([seed, team]) => {
+      if (FIRST_FOUR_MAP[team]) {
+        picks[seed] = FIRST_FOUR_MAP[team];
+        changed = true;
+      }
+    });
+    if (changed) {
+      anyChanged = true;
+      const params = new URLSearchParams({
+        action: "write", g: GROUP,
+        name: player.name,
+        picks: JSON.stringify(picks)
+      });
+      await fetch(`${GAS}?${params.toString()}`);
+      // Also fix local storage if it's this player
+      if (player.name === playerName) {
+        myPicks = picks;
+        localStorage.setItem(`mm26_picks_${GROUP}`, JSON.stringify(myPicks));
+      }
+    }
+  }
+  if (anyChanged) { renderSeeds(); console.log("First Four picks migrated"); }
+}
+
+// ════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════
 function init() {
@@ -547,6 +588,7 @@ function init() {
   updateCountdown();
   updateLockPill();
   fetchESPN().then(() => renderSeeds());
+  migrateFirstFour(); // auto-fix First Four team name picks
   setInterval(async () => {
     await fetchESPN();
     renderSeeds();
