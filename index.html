@@ -483,7 +483,19 @@ BRACKET.forEach(({seed,team,region}) => {
   SEEDS[seed].push({team, r:region});
 });
 
-const ESPN_MAP = {"Miami (FL)":"Miami FL","St. John's (NY)":"St. John's","Saint Mary's (CA)":"Saint Mary's","Hawai'i":"Hawaii"};
+const ESPN_MAP = {
+  "Miami (FL)":"Miami FL", "Miami (Ohio)":"Miami OH", "Miami (OH)":"Miami OH",
+  "St. John's (NY)":"St. John's", "Saint Mary's (CA)":"Saint Mary's",
+  "Hawai'i":"Hawaii", "NC State":"NC State",
+  "Ohio St":"Ohio State", "Michigan St":"Michigan State",
+  "North Carolina":"North Carolina", "Prairie View":"Prairie View A&M",
+  "Prairie View A&M Panthers":"Prairie View A&M",
+  "Tennessee St":"Tennessee State", "Wright St":"Wright State",
+  "Kennesaw St":"Kennesaw State", "North Dakota St":"North Dakota State",
+  "Cal Baptist":"Cal Baptist", "McNeese St":"McNeese", "McNeese State":"McNeese",
+  "Saint Louis":"Saint Louis", "Santa Clara":"Santa Clara",
+  "High Point":"High Point", "Queens (NC)":"Queens",
+};
 const LOCK = new Date("2026-03-19T11:00:00-04:00");
 const GAS  = "https://script.google.com/macros/s/AKfycbwHaroTQdhKbQzZ57Cy3MXl6p62hmvFozgkHCQkw-_u3Mv4jjYFc5G09vF-wQKZw2AP/exec";
 
@@ -509,7 +521,7 @@ const LOGO_IDS = {
   "Vanderbilt":238, "McNeese":2378, "Nebraska":158, "Troy":2653,
   "North Carolina":153, "VCU":2670, "Illinois":356, "Penn":219,
   "Saint Mary's":2608, "Texas A&M":245, "Houston":248, "Idaho":70,
-  "Siena":73, "Miami OH":193, "Prairie View A&M":2504,
+  "Queens":2511, "Siena":2561, "Miami OH":193, "Prairie View A&M":2504,
 };
 
 function logo(team, size=20) {
@@ -724,25 +736,41 @@ async function fetchESPN() {
   const dates = ["20260317","20260318","20260319","20260320","20260321","20260322",
                  "20260326","20260327","20260328","20260329","20260404","20260406"];
   const wins = {}, lost = {};
+
+  function mapName(team) {
+    if (!team) return "";
+    const display = ESPN_MAP[team.displayName] || team.displayName || "";
+    const short   = ESPN_MAP[team.shortDisplayName] || team.shortDisplayName || "";
+    // Try display name first, fall back to short name
+    return display || short;
+  }
+
   try {
     await Promise.all(dates.map(async d => {
-      try {
-        const res = await fetch(
-          `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=100&dates=${d}&limit=50`,
-          { signal: AbortSignal.timeout(8000) }
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        (data.events||[]).forEach(ev => {
-          const comp = ev.competitions?.[0];
-          if (!comp || comp.status?.type?.name !== "STATUS_FINAL") return;
-          const comps = comp.competitors||[];
-          const winner = comps.find(c=>c.winner);
-          const loser  = comps.find(c=>!c.winner);
-          if (winner) { let n=ESPN_MAP[winner.team?.displayName]||winner.team?.displayName||""; wins[n]=(wins[n]||0)+1; }
-          if (loser)  { let n=ESPN_MAP[loser.team?.displayName] ||loser.team?.displayName ||""; lost[n]=true; }
-        });
-      } catch {}
+      // Try with groups=100 (NCAA tournament filter) first, then without
+      const urls = [
+        `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=100&dates=${d}&limit=50`,
+        `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${d}&limit=100`
+      ];
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const events = data.events||[];
+          if (!events.length) continue;
+          events.forEach(ev => {
+            const comp = ev.competitions?.[0];
+            if (!comp || comp.status?.type?.name !== "STATUS_FINAL") return;
+            const comps = comp.competitors||[];
+            const winner = comps.find(c=>c.winner);
+            const loser  = comps.find(c=>!c.winner);
+            if (winner) { const n=mapName(winner.team); if(n) wins[n]=(wins[n]||0)+1; }
+            if (loser)  { const n=mapName(loser.team);  if(n) lost[n]=true; }
+          });
+          break; // got results, no need to try second URL
+        } catch {}
+      }
     }));
     results   = wins;
     eliminated = lost;
