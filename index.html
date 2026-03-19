@@ -733,6 +733,9 @@ function updateLockPill() {
 }
 
 async function fetchESPN() {
+  // First Four dates — wins here don't count for scoring
+  const FIRST_FOUR_DATES = new Set(["20260317","20260318"]);
+
   const dates = ["20260317","20260318","20260319","20260320","20260321","20260322",
                  "20260326","20260327","20260328","20260329","20260404","20260406"];
   const wins = {}, lost = {};
@@ -741,13 +744,11 @@ async function fetchESPN() {
     if (!team) return "";
     const display = ESPN_MAP[team.displayName] || team.displayName || "";
     const short   = ESPN_MAP[team.shortDisplayName] || team.shortDisplayName || "";
-    // Try display name first, fall back to short name
     return display || short;
   }
 
   try {
     await Promise.all(dates.map(async d => {
-      // Try with groups=100 (NCAA tournament filter) first, then without
       const urls = [
         `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=100&dates=${d}&limit=50`,
         `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${d}&limit=100`
@@ -759,17 +760,24 @@ async function fetchESPN() {
           const data = await res.json();
           const events = data.events||[];
           if (!events.length) continue;
+          console.log(`ESPN ${d}: ${events.length} events found`);
           events.forEach(ev => {
             const comp = ev.competitions?.[0];
             if (!comp || comp.status?.type?.name !== "STATUS_FINAL") return;
             const comps = comp.competitors||[];
             const winner = comps.find(c=>c.winner);
             const loser  = comps.find(c=>!c.winner);
-            if (winner) { const n=mapName(winner.team); if(n) wins[n]=(wins[n]||0)+1; }
-            if (loser)  { const n=mapName(loser.team);  if(n) lost[n]=true; }
+            const winName = winner ? mapName(winner.team) : "";
+            const loseName = loser  ? mapName(loser.team)  : "";
+            console.log(`  ${d}: ${winName} beat ${loseName}`);
+            // Only count wins for main tournament dates (not First Four)
+            if (!FIRST_FOUR_DATES.has(d)) {
+              if (winName) wins[winName] = (wins[winName]||0)+1;
+            }
+            if (loseName) lost[loseName] = true;
           });
-          break; // got results, no need to try second URL
-        } catch {}
+          break;
+        } catch(e) { console.warn(`ESPN fetch error ${d}:`, e); }
       }
     }));
     results   = wins;
@@ -777,7 +785,9 @@ async function fetchESPN() {
     localStorage.setItem("mm26_results", JSON.stringify(results));
     localStorage.setItem("mm26_elim",    JSON.stringify(eliminated));
     lastRefresh = new Date();
-  } catch {}
+    console.log("Final results:", results);
+    console.log("Eliminated:", eliminated);
+  } catch(e) { console.warn("fetchESPN error:", e); }
 }
 
 async function refreshScores() {
