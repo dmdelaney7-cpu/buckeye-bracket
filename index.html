@@ -511,11 +511,11 @@ const ESPN_MAP = {
   "Santa Clara Broncos":"Santa Clara", "Texas A&M Aggies":"Texas A&M",
   "Northern Iowa Panthers":"Northern Iowa", "High Point Panthers":"High Point",
   "Akron Zips":"Akron", "McNeese Cowboys":"McNeese",
-  "Cal Baptist Lancers":"Cal Baptist", "Hawaii Rainbow Warriors":"Hawaii",
+  "Cal Baptist Lancers":"Cal Baptist", "California Baptist Lancers":"Cal Baptist", "Hawaii Rainbow Warriors":"Hawaii",
   "Hofstra Pride":"Hofstra", "North Dakota State Bison":"North Dakota State",
   "Kennesaw State Owls":"Kennesaw State", "Wright State Raiders":"Wright State",
   "Penn Quakers":"Penn", "Furman Paladins":"Furman",
-  "Queens Royals":"Queens", "Tennessee State Tigers":"Tennessee State",
+  "Queens Royals":"Queens", "Queens University Royals":"Queens", "Tennessee State Tigers":"Tennessee State",
   "Idaho Vandals":"Idaho", "Siena Saints":"Siena", "LIU Sharks":"LIU",
   "South Florida Bulls":"South Florida", "VCU Rams":"VCU",
   "Ohio State":"Ohio State",
@@ -624,7 +624,7 @@ function init() {
   eliminated = JSON.parse(localStorage.getItem("mm26_elim")   || "{}");
 
   // Cache bust — if results version doesn't match, wipe stale scores and refetch
-  const RESULTS_VERSION = "v3";
+  const RESULTS_VERSION = "v4";
   if (localStorage.getItem("mm26_results_ver") !== RESULTS_VERSION) {
     localStorage.removeItem("mm26_results");
     localStorage.removeItem("mm26_elim");
