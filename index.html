@@ -1253,11 +1253,13 @@ async function renderLeaderboard() {
         const pts   = wins * s;
         const id    = LOGO_IDS[team];
         const src   = id ? `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png` : "";
-        const badge = isOut
-          ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--red);color:#fff;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">✕</div>`
-          : wins>0
-            ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--green);color:#000;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">${wins}W</div>`
-            : "";
+        const badge = isOut && wins>0
+          ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--red);color:#fff;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">${wins}W✕</div>`
+          : isOut
+            ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--red);color:#fff;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">✕</div>`
+            : wins>0
+              ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--green);color:#000;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">${wins}W</div>`
+              : "";
         if (!src) return `<div style="position:relative;width:32px;height:32px;background:var(--surface2);border-radius:4px;font-size:.5rem;display:flex;align-items:center;justify-content:center;color:var(--muted)">${s}${badge}</div>`;
         return `<div style="position:relative;width:32px;height:32px;margin-bottom:6px" title="${team}: ${wins}W · ${pts}pts">
           <img src="${src}" width="32" height="32" style="border-radius:4px;object-fit:contain;display:block;${isOut?"opacity:.25;filter:grayscale(1)":""}${isWin?"outline:1.5px solid var(--green);border-radius:4px":""}" onerror="this.style.display='none'">
