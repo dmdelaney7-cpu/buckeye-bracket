@@ -556,18 +556,13 @@ const LOGO_IDS = {
   "Queens":2511, "Siena":2561, "Miami OH":193, "Prairie View A&M":2504,
 };
 
-// Logo URL overrides for teams where ESPN CDN doesn't serve the standard path
-const LOGO_OVERRIDES = {
-  "TCU": "https://a.espncdn.com/i/teamlogos/ncaa/500-dark/2628.png"
-};
-
 function logo(team, size=20) {
   const id = LOGO_IDS[team];
   const abbr = team.substring(0,3).toUpperCase();
   const fallback = `<div style="width:${size}px;height:${size}px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:3px;font-size:${Math.max(6,size*0.3)}px;font-weight:800;color:var(--muted)">${abbr}</div>`;
   if (!id) return fallback;
-  const src = LOGO_OVERRIDES[team] || `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png`;
-  return `<img src="${src}" width="${size}" height="${size}" style="border-radius:3px;object-fit:contain;flex-shrink:0;vertical-align:middle;display:inline-block;background:#fff"
+  const src = `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png`;
+  return `<img src="${src}" width="${size}" height="${size}" style="border-radius:3px;object-fit:contain;flex-shrink:0;vertical-align:middle;display:inline-block"
     onerror="this.outerHTML='${fallback.replace(/'/g,"\\'")}'">`;
 }
 
