@@ -1257,7 +1257,7 @@ async function renderLeaderboard() {
         const isWin = wins>0 && !isOut;
         const pts   = wins * s;
         const id    = LOGO_IDS[team];
-        const src   = id ? `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png` : "";
+        const src = id ? `https://a.espncdn.com/combiner/i?img=/i/teamlogos/ncaa/500/${id}.png&w=32&h=32` : "";
         const badge = isOut && wins>0
           ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--red);color:#fff;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">${wins}W✕</div>`
           : isOut
