@@ -621,8 +621,19 @@ async function migrateFirstFour() {
 function init() {
   playerName = localStorage.getItem(`mm26_name_${GROUP}`)    || "";
   myPicks    = JSON.parse(localStorage.getItem(`mm26_picks_${GROUP}`)   || "{}");
-  results    = JSON.parse(localStorage.getItem("mm26_results") || "{}");
   eliminated = JSON.parse(localStorage.getItem("mm26_elim")   || "{}");
+
+  // Cache bust — if results version doesn't match, wipe stale scores and refetch
+  const RESULTS_VERSION = "v3";
+  if (localStorage.getItem("mm26_results_ver") !== RESULTS_VERSION) {
+    localStorage.removeItem("mm26_results");
+    localStorage.removeItem("mm26_elim");
+    localStorage.setItem("mm26_results_ver", RESULTS_VERSION);
+    results   = {};
+    eliminated = {};
+  } else {
+    results = JSON.parse(localStorage.getItem("mm26_results") || "{}");
+  }
 
   document.getElementById("name-inp").addEventListener("keydown", e => { if(e.key==="Enter") startPlaying(); });
 
@@ -770,7 +781,7 @@ async function fetchESPN() {
 
   const dates = ["20260317","20260318","20260319","20260320","20260321","20260322",
                  "20260326","20260327","20260328","20260329","20260404","20260406"];
-  const wins = {}, lost = {};
+  const wins = {}, lost = {}, processedGames = new Set();
 
   function mapName(team) {
     if (!team) return "";
@@ -814,6 +825,10 @@ async function fetchESPN() {
           events.forEach(ev => {
             const comp = ev.competitions?.[0];
             if (!comp || comp.status?.type?.name !== "STATUS_FINAL") return;
+            // Skip if we've already processed this game
+            const gameId = ev.id || comp.id || "";
+            if (gameId && processedGames.has(gameId)) return;
+            if (gameId) processedGames.add(gameId);
             const comps = comp.competitors||[];
             const winner = comps.find(c=>c.winner);
             const loser  = comps.find(c=>!c.winner);
@@ -1231,15 +1246,22 @@ async function renderLeaderboard() {
       // Build all 16 logo tiles in seed order
       const logoGrid = Array.from({length:16},(_,i)=>i+1).map(s => {
         const team = picks[s];
-        if (!team) return `<div style="width:24px;height:24px;background:var(--surface2);border-radius:4px;border:1px solid var(--border)"></div>`;
+        if (!team) return `<div style="width:32px;height:32px;background:var(--surface2);border-radius:4px;border:1px solid var(--border)"></div>`;
         const isOut = eliminated[team];
-        const isWin = results[team]>0 && !isOut;
-        const id = LOGO_IDS[team];
-        const src = id ? `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png` : "";
-        if (!src) return `<div style="width:24px;height:24px;background:var(--surface2);border-radius:4px;font-size:.5rem;display:flex;align-items:center;justify-content:center;color:var(--muted)">${s}</div>`;
-        return `<div style="position:relative;width:24px;height:24px" title="${team}">
-          <img src="${src}" width="24" height="24" style="border-radius:4px;object-fit:contain;display:block;${isOut?"opacity:.25;filter:grayscale(1)":""}${isWin?"outline:1px solid var(--green);border-radius:4px":""}" onerror="this.style.display='none'">
-          ${isOut?`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:var(--red)">✕</div>`:""}
+        const wins  = results[team]||0;
+        const isWin = wins>0 && !isOut;
+        const pts   = wins * s;
+        const id    = LOGO_IDS[team];
+        const src   = id ? `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png` : "";
+        const badge = isOut
+          ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--red);color:#fff;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">✕</div>`
+          : wins>0
+            ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--green);color:#000;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">${wins}W</div>`
+            : "";
+        if (!src) return `<div style="position:relative;width:32px;height:32px;background:var(--surface2);border-radius:4px;font-size:.5rem;display:flex;align-items:center;justify-content:center;color:var(--muted)">${s}${badge}</div>`;
+        return `<div style="position:relative;width:32px;height:32px;margin-bottom:6px" title="${team}: ${wins}W · ${pts}pts">
+          <img src="${src}" width="32" height="32" style="border-radius:4px;object-fit:contain;display:block;${isOut?"opacity:.25;filter:grayscale(1)":""}${isWin?"outline:1.5px solid var(--green);border-radius:4px":""}" onerror="this.style.display='none'">
+          ${badge}
         </div>`;
       }).join("");
 
