@@ -558,12 +558,9 @@ const LOGO_IDS = {
 
 function logo(team, size=20) {
   const id = LOGO_IDS[team];
-  const abbr = team.substring(0,3).toUpperCase();
-  const fallback = `<div style="width:${size}px;height:${size}px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:3px;font-size:${Math.max(6,size*0.3)}px;font-weight:800;color:var(--muted)">${abbr}</div>`;
-  if (!id) return fallback;
+  if (!id) return `<div style="width:${size}px;height:${size}px;flex-shrink:0;display:inline-block"></div>`;
   const src = `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png`;
-  return `<img src="${src}" width="${size}" height="${size}" style="border-radius:3px;object-fit:contain;flex-shrink:0;vertical-align:middle;display:inline-block"
-    onerror="this.outerHTML='${fallback.replace(/'/g,"\\'")}'">`;
+  return `<img src="${src}" width="${size}" height="${size}" style="border-radius:3px;object-fit:contain;flex-shrink:0;vertical-align:middle;display:inline-block" onerror="this.style.display='none'">`;
 }
 
 
@@ -1254,6 +1251,8 @@ async function renderLeaderboard() {
         const wins  = results[team]||0;
         const isWin = wins>0 && !isOut;
         const pts   = wins * s;
+        const id    = LOGO_IDS[team];
+        const src   = id ? `https://a.espncdn.com/i/teamlogos/ncaa/500/${id}.png` : "";
         const badge = isOut && wins>0
           ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--red);color:#fff;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">${wins}W✕</div>`
           : isOut
@@ -1261,18 +1260,15 @@ async function renderLeaderboard() {
             : wins>0
               ? `<div style="position:absolute;bottom:-5px;right:-5px;background:var(--green);color:#000;font-size:.5rem;font-weight:900;border-radius:3px;padding:1px 3px;line-height:1.2">${wins}W</div>`
               : "";
-        const tileStyle = `position:relative;width:32px;height:32px;margin-bottom:6px;flex-shrink:0;${isOut?"opacity:.25;filter:grayscale(1)":""}${isWin?"outline:1.5px solid var(--green);border-radius:4px":""}`;
-        return `<div style="${tileStyle}" title="${team}: ${wins}W · ${pts}pts">
-          ${logo(team, 32)}
+        if (!src) return `<div style="position:relative;width:32px;height:32px;background:var(--surface2);border-radius:4px;font-size:.5rem;display:flex;align-items:center;justify-content:center;color:var(--muted)">${s}${badge}</div>`;
+        return `<div style="position:relative;width:32px;height:32px;margin-bottom:6px" title="${team}: ${wins}W · ${pts}pts">
+          <img src="${src}" width="32" height="32" style="border-radius:4px;object-fit:contain;display:block;${isOut?"opacity:.25;filter:grayscale(1)":""}${isWin?"outline:1.5px solid var(--green);border-radius:4px":""}" onerror="this.style.display='none'">
           ${badge}
         </div>`;
       }).join("");
 
-      const entryId = `lb-entry-${i}`;
       return `<div class="lb-entry${isMe?" me":""}"
-        id="${entryId}"
-        onclick="onEntryTap('${p.name.replace(/'/g,"\\'")}', JSON.parse(document.getElementById('${entryId}').dataset.picks))"
-        data-picks='${JSON.stringify(picks).replace(/'/g,"&#39;")}'
+        onclick="onEntryTap('${p.name}',${JSON.stringify(picks)})"
         style="cursor:pointer;flex-direction:column;align-items:stretch;gap:10px;position:relative">
         ${editMode ? `<div onclick="event.stopPropagation();deletePlayer('${p.name}')" style="position:absolute;top:10px;right:10px;width:28px;height:28px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:#fff;z-index:10;cursor:pointer">✕</div>` : ""}
         <div style="display:flex;align-items:center;gap:14px;${editMode?"padding-right:36px":""}">
