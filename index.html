@@ -657,21 +657,17 @@ function init() {
   if (playerName) {
     document.getElementById("name-modal").style.display = "none";
     document.getElementById("player-chip").textContent = "👤 " + playerName;
-    // Always pull from sheet on load to get most recent picks across devices
-    fbPull().then(data => {
-      if (data && data[playerName] && data[playerName].picks) {
-        const sheetPicks = data[playerName].picks;
-        const sheetCount = Object.keys(sheetPicks).filter(k=>parseInt(k)>=1&&parseInt(k)<=16).length;
-        const localCount = Object.keys(myPicks).filter(k=>parseInt(k)>=1&&parseInt(k)<=16).length;
-        // Use sheet picks if they have more picks, or if local is empty
-        if (sheetCount >= localCount) {
-          myPicks = sheetPicks;
+    // If no local picks, try to pull from sheet
+    if (Object.keys(myPicks).length === 0) {
+      fbPull().then(data => {
+        if (data && data[playerName] && data[playerName].picks) {
+          myPicks = data[playerName].picks;
           localStorage.setItem(`mm26_picks_${GROUP}`, JSON.stringify(myPicks));
           renderSeeds();
         }
-      }
-    });
-    // Don't push on load — only push when user actively makes a pick
+      });
+    }
+    fbPush();
   }
   // Otherwise modal stays visible
 }
